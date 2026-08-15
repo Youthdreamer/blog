@@ -2,7 +2,6 @@
 title: 测试第一个博客内容
 date: 2025-08-15
 tags: [开站, 随笔]
-slug: first-letter
 summary: 测试的第一篇没什么内容
 ---
 
