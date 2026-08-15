@@ -1,0 +1,10 @@
+{
+  "name": "youth-blog",
+  "version": "1.0.0",
+  "private": true,
+  "description": "youth — 一间写字的屋子：零依赖、手工定制的个人博客",
+  "scripts": {
+    "build": "node build.js",
+    "serve": "node serve.js"
+  }
+}
