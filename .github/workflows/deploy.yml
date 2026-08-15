@@ -1,48 +1,39 @@
 name: Deploy to GitHub Pages
-
 on:
   # 推送到 main 分支时自动部署（如果你的默认分支叫 master，改成 master）
   push:
     branches: [main]
   # 支持在 GitHub 页面上手动触发
   workflow_dispatch:
-
 # 官方 Pages 部署所需的权限
 permissions:
   contents: read
   pages: write
   id-token: write
-
 # 同一时间只跑一个部署，避免互相覆盖
 concurrency:
   group: pages
   cancel-in-progress: true
-
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
-
       # 零依赖，无需 npm install，直接构建
       - name: Build site
         run: node build.js
-
       - name: Setup Pages
         uses: actions/configure-pages@v5
-
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
           # 只上传构建产物 site/ 目录
           path: ./site
-
   deploy:
     needs: build
     runs-on: ubuntu-latest
