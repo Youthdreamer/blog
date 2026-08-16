@@ -11,6 +11,8 @@
 - **图片**：响应式 + 香槟金细边 + 懒加载 + 点击放大（零依赖 lightbox）
 - **首页特效**：鼠标光晕、点击墨滴涟漪、逐字浮现标题（点击可重播）、漂浮墨尘
 - **链接悬停预览**：站内文章富预览 + 外站 favicon/域名预览
+- **分页**：文章过多时自动分页（`index.html` + `page/N.html`，每页篇数可配置）
+- **标签页**：按 frontmatter 的 `tags` 自动生成标签云（`tags.html`）与各标签归档页（`tag/*.html`）
 - **彩蛋**：键盘敲出 `youth`、连点三次页脚印章
 - **SEO**：canonical、完整 Open Graph、Twitter Card、JSON-LD 结构化数据、`sitemap.xml`、`robots.txt`、RSS feed、社交分享图
 - **响应式与无障碍**：窄屏适配、`prefers-reduced-motion`、焦点环、语义化标签
@@ -21,6 +23,7 @@
 ```bash
 node build.js   # 构建站点（输出到 site/）
 node serve.js   # 本地预览（默认 8000，可用 PORT=9000 换端口）
+node dev.js     # 开发模式：编辑 content/ 或 assets/ 保存后自动重建 + 浏览器刷新（推荐写作时用）
 ```
 
 打开 http://127.0.0.1:8000 即可。
@@ -100,6 +103,7 @@ draft: true              # 可选，true 则不发布
 | 想改什么 | 去哪里改 |
 | --- | --- |
 | 站点名 / 标语 / 作者 | `lib/config.js` 的 `SITE` |
+| 每页文章数 | `lib/config.js` 的 `PAGE_SIZE` |
 | 配色 | `assets/css/base.css` 的 `:root` 变量 |
 | 字体 | `lib/templates.js` 的 `FONTS` + `base.css` 的字体变量 |
 | 导航 / 页脚文字 | `lib/templates.js` 的 `nav()` / `footer()` |

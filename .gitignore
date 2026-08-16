@@ -4,6 +4,11 @@ site/
 # 依赖（当前零依赖；留作将来引入构建工具时的保险）
 node_modules/
 
+# Nix / direnv
+result/
+result-*
+.direnv/
+
 # 环境变量 / 密钥（防误提交）
 .env
 .env.*

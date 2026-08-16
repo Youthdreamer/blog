@@ -5,6 +5,7 @@
   "description": "youth — 一间写字的屋子：零依赖、手工定制的个人博客",
   "scripts": {
     "build": "node build.js",
-    "serve": "node serve.js"
+    "serve": "node serve.js",
+    "dev": "node dev.js"
   }
 }

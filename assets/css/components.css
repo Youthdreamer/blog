@@ -69,24 +69,134 @@
   max-width: 56em;
 }
 
-.post .tags {
+/* ---------- 分页 ---------- */
+
+.pagination {
   display: flex;
-  gap: .5rem;
-  margin: 1.05rem 0 0;
-  padding: 0;
-  list-style: none;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: .6rem;
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--line);
 }
-.post .tags span {
+.pager {
   font-family: var(--mono);
-  font-size: .58rem;
-  letter-spacing: .16em;
+  font-size: .68rem;
+  letter-spacing: .08em;
+  color: var(--ink-2);
+  text-decoration: none;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  padding: .5em .95em;
+  transition: color .3s, border-color .3s;
+}
+.pager:hover { color: var(--accent-br); border-color: rgba(185, 163, 124, .5); }
+.pager.current {
+  color: var(--accent);
+  border-color: rgba(185, 163, 124, .5);
+  background: rgba(185, 163, 124, .08);
+}
+
+/* 分页页头（非首页） */
+.page-head {
+  margin: 8.5rem auto 0;
+  max-width: var(--maxw);
+  padding: 0 clamp(1.2rem, 5vw, 2rem);
+  text-align: center;
+}
+.page-head h1 {
+  margin: 1.1rem 0 0;
+  font-size: clamp(2.4rem, 7vw, 4rem);
+}
+
+/* 标签云（tags.html）——衬线、留白 */
+.tag-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1.3rem 2.6rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.tag-cloud a {
+  display: inline-flex;
+  align-items: baseline;
+  gap: .55em;
+  text-decoration: none;
+  color: var(--ink-2);
+  transition: color .3s var(--ease);
+}
+.tag-cloud a:hover { color: var(--accent-br); }
+.tag-name {
+  font-family: var(--serif);
+  font-size: 1.2rem;
+  font-weight: 300;
+  letter-spacing: .02em;
+}
+.tag-count {
+  font-family: var(--mono);
+  font-size: .64rem;
   color: var(--accent-dim);
+}
+
+/* 紧凑归档列表（标签页） */
+.idx-list {
+  margin-top: .5rem;
+}
+.idx {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 1rem .2rem;
+  border-top: 1px solid var(--line);
+  text-decoration: none;
+  color: inherit;
+  transition: padding-left .4s var(--ease);
+}
+.idx:last-child { border-bottom: 1px solid var(--line); }
+.idx:hover { padding-left: .9rem; }
+.idx-date {
+  font-family: var(--mono);
+  font-size: .66rem;
+  letter-spacing: .08em;
+  color: var(--ink-3);
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+.idx-title {
+  font-family: var(--serif);
+  font-size: 1.05rem;
+  font-weight: 300;
+  letter-spacing: .02em;
+  color: var(--ink);
+  text-align: right;
+  transition: color .3s;
+}
+.idx:hover .idx-title { color: var(--accent-br); }
+
+/* 文章页标签 */
+.article-tags {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: .5rem;
+  margin: 1.4rem 0 0;
+}
+.article-tags a {
+  font-family: var(--mono);
+  font-size: .6rem;
+  letter-spacing: .12em;
+  color: var(--accent-dim);
+  text-decoration: none;
   border: 1px solid var(--line-strong);
   border-radius: 999px;
-  padding: .28em .85em;
-  transition: border-color .3s, color .3s;
+  padding: .25em .8em;
+  transition: color .3s, border-color .3s;
 }
-.post:hover .tags span { border-color: rgba(185, 163, 124, .4); color: var(--accent); }
+.article-tags a:hover { color: var(--accent-br); border-color: rgba(185, 163, 124, .5); }
 
 /* ---------- 文章页 ---------- */
 
@@ -368,6 +478,41 @@
   font-size: .95rem;
   letter-spacing: .08em;
 }
+
+/* 上一篇 / 下一篇 */
+.post-nav {
+  display: flex;
+  justify-content: space-between;
+  gap: 1.5rem;
+  margin-top: 4rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--line);
+}
+.pn {
+  display: flex;
+  flex-direction: column;
+  gap: .45em;
+  text-decoration: none;
+  color: inherit;
+  max-width: 46%;
+}
+.pn.next { text-align: right; align-items: flex-end; }
+.pn-label {
+  font-family: var(--mono);
+  font-size: .62rem;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.pn-title {
+  font-family: var(--serif);
+  font-size: 1rem;
+  font-weight: 300;
+  color: var(--ink-2);
+  line-height: 1.5;
+  transition: color .3s;
+}
+.pn:hover .pn-title { color: var(--accent-br); }
 
 /* ---------- 进度条 & 提示 ---------- */
 
