@@ -30,7 +30,11 @@
   document.querySelectorAll('.article pre').forEach(function (pre) {
     var code = pre.querySelector('code');
     if (code && window.hljs) {
-      try { window.hljs.highlightElement(code); } catch (e) { /* 高亮失败则保持原样 */ }
+      try {
+        // hljs 无 hyprlang 语法，用 ini 近似高亮
+        if (code.classList.contains('lang-hypr')) code.classList.replace('lang-hypr', 'lang-ini');
+        window.hljs.highlightElement(code);
+      } catch (e) { /* 高亮失败则保持原样 */ }
     }
 
     var wrap = document.createElement('div');
