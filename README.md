@@ -12,6 +12,7 @@
 - **首页特效**：鼠标光晕、点击墨滴涟漪、逐字浮现标题（点击可重播）、漂浮墨尘
 - **链接悬停预览**：站内文章富预览 + 外站 favicon/域名预览
 - **彩蛋**：键盘敲出 `youth`、连点三次页脚印章
+- **SEO**：canonical、完整 Open Graph、Twitter Card、JSON-LD 结构化数据、`sitemap.xml`、`robots.txt`、RSS feed、社交分享图
 - **响应式与无障碍**：窄屏适配、`prefers-reduced-motion`、焦点环、语义化标签
 - **GitHub Pages 自动部署**：每次 push 自动构建发布
 
@@ -36,7 +37,7 @@ node serve.js   # 本地预览（默认 8000，可用 PORT=9000 换端口）
 │   ├── markdown.js           #   手写 Markdown 解析器
 │   ├── content.js            #   读取 content/ 下的文章与页面
 │   ├── templates.js          #   页面模板（head/nav/footer/文章卡片…）
-│   └── build.js              #   构建流程（清理/拷贝/生成元数据/渲染）
+│   └── build.js              #   构建流程（清理/拷贝/元数据/渲染/SEO 产物）
 ├── assets/
 │   ├── css/                  # 样式（按职责拆分，构建时合并加载）
 │   │   ├── base.css          #   设计变量 / 重置 / 排版基础
@@ -49,7 +50,7 @@ node serve.js   # 本地预览（默认 8000，可用 PORT=9000 换端口）
 │   │   ├── enhance.js        #   图片放大 / 代码高亮复制
 │   │   └── preview.js        #   链接悬停预览
 │   ├── vendor/               # 第三方库（highlight.js）
-│   ├── images/               # 本地图片
+│   ├── og-image.png          # 社交分享图（og:image）
 │   └── favicon.svg
 ├── content/
 │   ├── posts/                # 文章（每篇一个 .md）
@@ -112,9 +113,10 @@ draft: true              # 可选，true 则不发布
 1. 推到 GitHub 仓库（`git push -u origin main`）
 2. 仓库 `Settings → Pages → Build and deployment` 的 **Source 选 `GitHub Actions`**
 3. 每次 push 会自动构建并发布（见 `.github/workflows/deploy.yml`）
-4. 把 `lib/config.js` 里的 `SITE.url` 改成你的 Pages 地址
+4. 把 `lib/config.js` 里的 `SITE.url` 改成你的真实地址——**SEO 的 canonical / sitemap / og:url / RSS 都依赖它**，改错会影响收录和分享卡片
+5. 每次构建会自动生成 `sitemap.xml`、`robots.txt`、`feed.xml`，并给每页写入 JSON-LD 结构化数据
 
-> 站点用全相对路径，部署在 `用户名.github.io/仓库名/` 子路径下也能正常显示。
+> 站点用全相对路径，部署在 `用户名.github.io/仓库名/` 子路径下也能正常显示。当前 `SITE.url` 预填的是 `https://Youthdreamer.github.io/blog`，部署前请核对。
 
 ## 彩蛋
 
