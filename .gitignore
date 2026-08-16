@@ -1,8 +1,17 @@
-# 构建产物（GitHub Actions 每次会重新构建，无需提交）
+# 构建产物（每次 node build.js 重新生成，无需提交）
 site/
 
-# 依赖（当前零依赖，留作备用）
+# 依赖（当前零依赖；留作将来引入构建工具时的保险）
 node_modules/
+
+# 环境变量 / 密钥（防误提交）
+.env
+.env.*
+
+# 编辑器 / IDE
+.vscode/
+.idea/
+*.swp
 
 # 系统文件
 .DS_Store

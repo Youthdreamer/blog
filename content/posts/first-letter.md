@@ -34,4 +34,8 @@ summary: 每一间屋子都需要一把钥匙。这是 youth 的第一把，写�
 
 谢谢你来。屋子的门没有锁，茶在桌上，请随意。
 
+如果你还想读点别的，[《论安静》](on-quietness.html) 是我很喜欢的一篇，也写下了我对"安静"的理解。
+
+这间屋子的每一行代码都手写在 [GitHub](https://github.com/Youthdreamer/blog) 上，欢迎来坐坐。
+
 *—— youth，于一个安静的工作日*

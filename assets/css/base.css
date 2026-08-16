@@ -1,0 +1,143 @@
+/* ============================================================
+   base.css — 设计变量 / 重置 / 排版基础
+   ============================================================ */
+
+:root {
+  /* —— 墨色底 —— */
+  --bg:        #12100e;
+  --bg-deep:   #0c0b09;
+  --surface:   #171512;
+
+  /* —— 纸色字 —— */
+  --ink:       #e8e2d6;
+  --ink-2:     #a39b8c;
+  --ink-3:     #6f695d;
+
+  /* —— 香槟金（用得节制，才是高级） —— */
+  --accent:      #b9a37c;
+  --accent-br:   #d8c39a;
+  --accent-dim:  #8a7a5c;
+  --accent-soft: rgba(185, 163, 124, .14);
+
+  /* —— 发丝线 —— */
+  --line:        rgba(232, 226, 214, .09);
+  --line-strong: rgba(232, 226, 214, .18);
+
+  /* —— 字体 —— */
+  --serif: "Cormorant Garamond", "Noto Serif SC", Georgia, "Songti SC", "STSong", "SimSun", serif;
+  --mono:  "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  /* —— 节奏 —— */
+  --ease: cubic-bezier(.22, .61, .36, 1);
+  --maxw: 760px;
+}
+
+/* ---------- 基础 ---------- */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--serif);
+  font-weight: 300;
+  font-size: 1rem;
+  line-height: 1.95;
+  letter-spacing: .02em;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+  /* 界面元素禁止鼠标选中（正文/代码在下方重新放行） */
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+}
+
+/* 正文与代码块仍可选中复制 */
+.article .content,
+.article pre,
+.article code,
+.lost {
+  user-select: text;
+  -webkit-user-select: text;
+  -moz-user-select: text;
+}
+
+/* 颗粒质感：让深色不闷 */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 990;
+  pointer-events: none;
+  opacity: .045;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* 四角暗角：让视线聚拢 */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: radial-gradient(120% 90% at 50% 10%, transparent 55%, rgba(0, 0, 0, .42) 100%);
+}
+
+::selection { background: rgba(185, 163, 124, .30); color: #f4efe2; }
+
+::-webkit-scrollbar { width: 10px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: #292520; border-radius: 6px; border: 2px solid var(--bg); }
+::-webkit-scrollbar-thumb:hover { background: #3a342b; }
+
+a { color: inherit; }
+a:focus-visible,
+button:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 3px;
+}
+
+img { max-width: 100%; }
+
+/* ---------- 排版工具 ---------- */
+
+.display {
+  font-family: var(--serif);
+  font-weight: 300;
+  font-style: italic;
+  line-height: 1.05;
+  letter-spacing: .01em;
+  margin: 0;
+}
+
+.kicker {
+  font-family: var(--mono);
+  font-size: .66rem;
+  font-weight: 400;
+  letter-spacing: .34em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin: 0;
+}
+
+.section-title {
+  font-family: var(--mono);
+  font-size: .7rem;
+  font-weight: 400;
+  letter-spacing: .3em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  display: flex;
+  align-items: center;
+  gap: 1.1rem;
+  margin: 0 0 1.2rem;
+}
+.section-title::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}

@@ -1,89 +1,10 @@
 /* ============================================================
-   youth — 交互脚本
-   阅读进度 / 入场动画 / 小彩蛋 / 页脚年份
+   effects.js — 首页特效：光晕 / 墨滴 / 逐字 / 墨尘
+   （尊重 prefers-reduced-motion）
    ============================================================ */
 (function () {
   'use strict';
 
-  /* ---------- 阅读进度条 ---------- */
-  var bar = document.getElementById('progress');
-  if (bar) {
-    var onScroll = function () {
-      var doc = document.documentElement;
-      var max = doc.scrollHeight - doc.clientHeight;
-      var y = doc.scrollTop || document.body.scrollTop;
-      bar.style.width = (max > 0 ? (y / max) * 100 : 0) + '%';
-    };
-    window.addEventListener('scroll', onScroll, { passive: true });
-    onScroll();
-  }
-
-  /* ---------- 入场渐显 ---------- */
-  var revealEls = document.querySelectorAll('[data-reveal]');
-  if ('IntersectionObserver' in window) {
-    var io = new IntersectionObserver(function (entries) {
-      entries.forEach(function (entry) {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('in');
-          io.unobserve(entry.target);
-        }
-      });
-    }, { threshold: 0.1, rootMargin: '0px 0px -8% 0px' });
-    revealEls.forEach(function (el, i) {
-      el.style.setProperty('--rd', ((i % 3) * 90) + 'ms');
-      io.observe(el);
-    });
-  } else {
-    revealEls.forEach(function (el) { el.classList.add('in'); });
-  }
-
-  /* ---------- 提示 ---------- */
-  var toast = document.getElementById('toast');
-  var toastTimer = null;
-  function showToast(msg) {
-    if (!toast) return;
-    toast.textContent = msg;
-    toast.classList.add('show');
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(function () { toast.classList.remove('show'); }, 3600);
-  }
-
-  /* ---------- 彩蛋一：敲出密语 "youth" ---------- */
-  var buf = '';
-  var SECRET = 'youth';
-  document.addEventListener('keydown', function (e) {
-    if (e.key && e.key.length === 1 && !e.metaKey && !e.ctrlKey && !e.altKey) {
-      buf = (buf + e.key.toLowerCase()).slice(-SECRET.length);
-      if (buf === SECRET) {
-        showToast('你唤醒了这间屋子的密语。');
-        buf = '';
-      }
-    }
-  });
-
-  /* ---------- 彩蛋二：连击印章 ---------- */
-  var seal = document.querySelector('.seal');
-  var clicks = 0, clickTimer = null;
-  if (seal) {
-    seal.addEventListener('click', function () {
-      clicks++;
-      clearTimeout(clickTimer);
-      clickTimer = setTimeout(function () { clicks = 0; }, 900);
-      if (clicks >= 3) {
-        showToast('这枚印章，是你我的暗号。');
-        clicks = 0;
-      }
-    });
-  }
-
-  /* ---------- 页脚年份 ---------- */
-  document.querySelectorAll('[data-year]').forEach(function (el) {
-    el.textContent = String(new Date().getFullYear());
-  });
-
-  /* ==========================================================
-     首页特效（尊重 prefers-reduced-motion）
-     ========================================================== */
   var reduceMotion = window.matchMedia &&
     window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
