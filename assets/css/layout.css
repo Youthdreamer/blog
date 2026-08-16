@@ -59,6 +59,19 @@
 .nav-links a:hover, .nav-links a.on { color: var(--accent-br); }
 .nav-links a:hover::after, .nav-links a.on::after { transform: scaleX(1); }
 
+/* 导航项之间的发丝分隔线 */
+.nav-links a:not(:first-child)::before {
+  content: "";
+  position: absolute;
+  left: calc(-0.5 * clamp(1.2rem, 4vw, 2.4rem));
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 1px;
+  height: 1em;
+  background: var(--line-strong);
+  pointer-events: none;
+}
+
 /* ---------- 首页 Hero ---------- */
 
 .hero {
