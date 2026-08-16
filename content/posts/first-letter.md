@@ -38,4 +38,4 @@ summary: 每一间屋子都需要一把钥匙。这是 youth 的第一把，写�
 
 这间屋子的每一行代码都手写在 [GitHub](https://github.com/Youthdreamer/blog) 上，欢迎来坐坐。
 
-*—— youth，于一个安静的工作日*
+_—— youth，于一个安静的工作日_
