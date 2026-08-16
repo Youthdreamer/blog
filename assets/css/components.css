@@ -246,6 +246,47 @@
   font-size: .7rem;
 }
 
+/* 文章目录（呼应分节标题的「◇ 标题 ───」与卡片 № 编号） */
+.toc {
+  margin: 0 auto 3rem;
+}
+.toc-label {
+  font-family: var(--mono);
+  font-size: .62rem;
+  letter-spacing: .3em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  display: flex;
+  align-items: center;
+  gap: .9rem;
+  margin: 0 0 1.5rem;
+}
+.toc-label::before { content: "◇"; color: var(--accent-dim); font-size: .5rem; }
+.toc-label::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+.toc a {
+  display: block;
+  font-family: var(--serif);
+  font-size: .92rem;
+  color: var(--ink-3);
+  text-decoration: none;
+  padding: .3em 0;
+  transition: color .3s;
+}
+.toc a:hover { color: var(--accent-br); }
+.toc a .no {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: .68rem;
+  color: var(--accent-dim);
+  margin-right: 1.1em;
+  min-width: 1.5em;
+}
+.toc a.toc-sub {
+  padding-left: 2.6em;
+  font-size: .84rem;
+}
+.article h2, .article h3 { scroll-margin-top: 6rem; }
+
 /* 正文排版 */
 .article .content { font-size: 1.02rem; }
 
