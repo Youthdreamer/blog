@@ -70,7 +70,7 @@ node serve.js   # 本地预览（默认 8000，可用 PORT=9000 换端口）
 title: 文章标题
 date: 2025-08-20
 tags: [随笔, 代码]
-slug: my-post            # 可选，默认由标题生成
+slug: my-post            # 可选，默认取文件名（不含 .md 后缀）
 summary: 一句话摘要，显示在文章列表里
 draft: true              # 可选，true 则不发布
 ---
@@ -80,7 +80,7 @@ draft: true              # 可选，true 则不发布
 [链接](https://example.com)、引用、列表、```代码块```、标题、分隔线。
 ```
 
-然后 `node build.js` 重新构建。文章按日期倒序排列，`draft: true` 自动隐藏。
+然后 `node build.js` 重新构建。文章按日期倒序排列，`draft: true` 自动隐藏；若两篇文章 slug 重复，构建会**报错并列出冲突的文件与标题**。
 
 ### 图片
 
