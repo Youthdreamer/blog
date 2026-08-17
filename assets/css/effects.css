@@ -19,6 +19,29 @@
 }
 @media (pointer: coarse) { #glow { display: none; } }
 
+/* 加载提示：同心双菱形（SVG 斜菱形，反向旋转，永远像菱形不像方块） */
+#loader {
+  position: fixed;
+  top: 50%; left: 50%;
+  width: 52px; height: 52px;
+  margin: -26px 0 0 -26px;
+  z-index: 500;
+  pointer-events: none;
+  color: var(--accent-dim);
+  opacity: 0;
+  transition: opacity .5s var(--ease);
+}
+#loader svg {
+  position: absolute;
+  inset: 0;
+  width: 100%; height: 100%;
+}
+#loader .ld1 { animation: loader-cw 3s linear infinite; }
+#loader .ld2 { animation: loader-ccw 3s linear infinite; }
+#loader.show { opacity: 1; }
+@keyframes loader-cw { to { transform: rotate(360deg); } }
+@keyframes loader-ccw { to { transform: rotate(-360deg); } }
+
 /* ② 墨滴涟漪：点击处一圈若隐若现的墨环（含蓄版） */
 .ink-ripple {
   position: fixed;

@@ -27,11 +27,15 @@
           io.unobserve(entry.target);
         }
       });
-    }, { threshold: 0.1, rootMargin: '0px 0px -8% 0px' });
+    }, { threshold: 0.01, rootMargin: '0px 0px -5% 0px' });
     revealEls.forEach(function (el, i) {
       el.style.setProperty('--rd', ((i % 3) * 90) + 'ms');
       io.observe(el);
     });
+    // 兜底：1.2s 后仍未显示的元素强制显示（防止长文等超高元素因阈值不达标而一直隐藏）
+    setTimeout(function () {
+      revealEls.forEach(function (el) { el.classList.add('in'); });
+    }, 1200);
   } else {
     revealEls.forEach(function (el) { el.classList.add('in'); });
   }
