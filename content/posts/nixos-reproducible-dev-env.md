@@ -11,7 +11,8 @@ summary: 从配置、Flakes、Home Manager 到编辑器与桌面的完整工作�
 ## 为什么我在意「可复现」
 
 传统方式配环境，靠的是"我脑子里记得装过什么"。装到什么依赖、改了什么配置、加了哪个别名，时间一久就忘了。换台机器，光是想起来"我到底配了哪些东西"就要半天。
-
+![明日香](https://cdn.jsdelivr.net/gh/youthdreamer/image-bed/blog-image/2026-08/%E6%98%8E%E6%97%A5%E9%A6%99.webp)
+![明日香2](https://cdn.jsdelivr.net/gh/youthdreamer/image-bed/blog-image/2026-08/%E6%98%8E%E6%97%A5%E9%A6%99.webp)
 > 可复现的本质，是让环境**从记忆变成文件**。
 
 NixOS 的价值就在这：你的整个系统——装了什么包、开了什么服务、什么用户、什么 shell——都被描述在一个（或几个）纯文本文件里。任何一台机器，拿到这些文件，就能还原出**一模一样**的环境。

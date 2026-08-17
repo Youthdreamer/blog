@@ -8,6 +8,7 @@ summary: 把配置文件放进 git 仓库，让任何一台机器都能变回"�
 
 换电脑、重装系统，最怕的不是装软件，而是**找回那些改了无数次的配置**。
 
+![明日香](https://cdn.jsdelivr.net/gh/youthdreamer/image-bed/blog-image/2026-08/%E6%98%8E%E6%97%A5%E9%A6%99.webp)
 我的解法是把所有配置放进一个 **dotfiles 仓库**，用 git 管理。
 
 ## 思路
