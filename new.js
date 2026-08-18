@@ -299,7 +299,7 @@ async function main() {
     }
   }
 
-  /* 生成文件 */
+  /* 生成文件：顶部附全部可选字段的注释参考（解析器忽略 # 行，放心写） */
   const lines = ['---', `title: ${state.title}`, `date: ${state.date}`];
   if (state.updated) lines.push(`updated: ${state.updated}`);
   if (state.tags.length) lines.push(`tags: [${state.tags.join(', ')}]`);
@@ -309,6 +309,16 @@ async function main() {
   if (state.draft) lines.push('draft: true');
   if (state.pin) lines.push('pin: true');
   if (state.toc) lines.push('toc: false');
+  lines.push(
+    '# ── 可选字段：去掉行首 # 即启用，全部留空也没关系 ──',
+    '# updated: 2026-08-20   最后更新日期，文章页显示"更新于"',
+    '# tags: [标签A, 标签B]   标签，多个用英文逗号',
+    '# summary: 一句话摘要    显示在文章列表里',
+    '# minutes: 8            手动阅读时长，缺省自动按字数估算',
+    '# draft: true           草稿（不发布）',
+    '# pin: true             置顶到列表最前',
+    '# toc: false            隐藏本文目录'
+  );
   lines.push('---', '', '');
 
   fs.writeFileSync(path.join(PATHS.posts, `${state.slug}.md`), lines.join('\n'));
