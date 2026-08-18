@@ -6,7 +6,6 @@ tags: [测试]
 slug: feature-test
 summary: 用于验证分享图、更新日期、目录隐藏
 minutes: 6
-image: assets/og-image.png
 toc: false
 ---
 

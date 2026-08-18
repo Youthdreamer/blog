@@ -120,13 +120,12 @@ const state = {
   tags: [],
   summary: '',
   minutes: '',
-  image: '',
   draft: false,
   pin: false,
   toc: false,
 };
 
-const FIELD_ORDER = ['title', 'slug', 'date', 'updated', 'tags', 'summary', 'minutes', 'image', 'draft', 'pin', 'toc'];
+const FIELD_ORDER = ['title', 'slug', 'date', 'updated', 'tags', 'summary', 'minutes', 'draft', 'pin', 'toc'];
 const FIELD_LABEL = {
   title: '标题',
   slug: '文件名',
@@ -135,7 +134,6 @@ const FIELD_LABEL = {
   tags: '标签',
   summary: '摘要',
   minutes: '阅读时长',
-  image: '分享图',
   draft: '草稿',
   pin: '置顶',
   toc: '隐藏目录',
@@ -217,10 +215,6 @@ async function askField(key) {
       if (/^\d+$/.test(v) && Number(v) > 0) { state.minutes = v; return; }
       dim('  ✗ 请输入正整数，或留空自动估算');
     }
-  }
-  if (key === 'image') {
-    state.image = await ask(`${num}分享图（社交卡片图，相对路径或 URL，可空）`);
-    return;
   }
   if (key === 'draft') {
     state.draft = /^y/i.test(await ask(`${num}草稿？（y/N）`));
@@ -312,7 +306,6 @@ async function main() {
   lines.push(`slug: ${state.slug}`);
   if (state.summary) lines.push(`summary: ${state.summary}`);
   if (state.minutes) lines.push(`minutes: ${state.minutes}`);
-  if (state.image) lines.push(`image: ${state.image}`);
   if (state.draft) lines.push('draft: true');
   if (state.pin) lines.push('pin: true');
   if (state.toc) lines.push('toc: false');
