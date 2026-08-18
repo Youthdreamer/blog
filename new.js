@@ -382,10 +382,13 @@ async function main() {
   lines.push('---', '', '');
 
   fs.writeFileSync(path.join(PATHS.posts, `${state.slug}.md`), lines.join('\n'));
-  rl.close();
 
   gold(`  ✓ 已创建 content/posts/${state.slug}.md`);
   dim(`  · 可选字段：updated / tags / summary / minutes / draft / pin / toc · 完整说明：npm run fields`);
+
+  /* 询问是否立即打开编辑器（默认不打开，避免侵入） */
+  const openNow = /^y/i.test(await ask('打开编辑器开始写作？（y/N）'));
+  rl.close();
 
   /* 启动 dev（若未在运行）并等待就绪；无论哪种情况都汇报 PID 与停止方式 */
   const already = await isPortOpen(PORT);
@@ -411,8 +414,12 @@ async function main() {
   say('');
   openBrowser(url);
 
-  /* 自动打开编辑器，直接开始写作 */
-  openEditor(path.join(PATHS.posts, `${state.slug}.md`));
+  /* 询问同意后再打开编辑器，直接开始写作 */
+  if (openNow) {
+    openEditor(path.join(PATHS.posts, `${state.slug}.md`));
+  } else {
+    dim(`  · 未打开编辑器，可直接编辑：content/posts/${state.slug}.md`);
+  }
 }
 
 /* 读取 dev.js 写入的 PID 记录（.dev.pid） */

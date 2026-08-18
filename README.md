@@ -116,7 +116,7 @@ $ node new.js
   → http://127.0.0.1:8000/post/nixos-guide.html
 ```
 
-向导生成带 frontmatter 的空文章（保持干净），并自动启动（或复用）开发服务器打开浏览器预览、自动用 $VISUAL/$EDITOR 打开新文件（缺省尝试 code/nvim/vim/vi），直接开始写作。全部字段参考随时用 `npm run fields` 查看。文件名输入后会**立即检查冲突**：同名文件、或其他文章 frontmatter 里已占用的 slug 都会被拒绝（绝不覆盖），确认页还能输入编号返回修改任意一项。也可以手动新建 `.md`，开头写 frontmatter：
+向导生成带 frontmatter 的空文章（保持干净），并自动启动（或复用）开发服务器打开浏览器预览，询问后可用 $VISUAL/$EDITOR 打开新文件直接写作（默认不打开，回车跳过）。全部字段参考随时用 `npm run fields` 查看。文件名输入后会**立即检查冲突**：同名文件、或其他文章 frontmatter 里已占用的 slug 都会被拒绝（绝不覆盖），确认页还能输入编号返回修改任意一项。也可以手动新建 `.md`，开头写 frontmatter：
 
 ```markdown
 ---
