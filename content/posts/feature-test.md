@@ -13,7 +13,7 @@ toc: false
 
 ## 第一节 分享图
 
-`image: assets/og-image.png` 会写入页面的 `og:image` meta。在页面源码里搜 `og:image` 即可看到。
+站点不再支持 per-article 分享图字段，所有页面统一使用默认分享图（`assets/og-image.png`）作为 `og:image`。在页面源码里搜 `og:image` 即可看到。
 
 ## 第二节 更新日期
 
