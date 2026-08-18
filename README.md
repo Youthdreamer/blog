@@ -29,6 +29,7 @@
 node build.js   # 构建站点（输出到 site/）
 node serve.js   # 本地预览（默认 8000，可用 PORT=9000 换端口）
 node dev.js     # 开发模式：编辑 content/ 或 assets/ 保存后自动重建 + 浏览器刷新（推荐写作时用）
+node new.js     # 新文章向导：交互填写标题/日期/标签，生成文件并打开预览（写作入口）
 ```
 
 打开 http://127.0.0.1:8000 即可。
@@ -38,6 +39,7 @@ node dev.js     # 开发模式：编辑 content/ 或 assets/ 保存后自动重�
 ```
 .
 ├── build.js                  # 构建入口（薄，委托给 lib/）
+├── new.js                    # 新文章向导（交互生成文章 + 打开预览）
 ├── serve.js                  # 本地预览服务器（零依赖，支持自定义 404）
 ├── lib/                      # 构建逻辑（模块化）
 │   ├── config.js             #   站点配置 + 路径常量
@@ -72,10 +74,66 @@ node dev.js     # 开发模式：编辑 content/ 或 assets/ 保存后自动重�
 
 ## 写一篇文章
 
-在 `content/posts/` 新建 `.md`，开头写 frontmatter：
+**推荐入口：`npm run new`**（或 `node new.js`）——create-next-app 式一问一答向导，把 frontmatter 所有字段问全：
+
+```
+$ node new.js
+
+  ◇ 新文章向导
+  ──────────────────────────
+
+1/11 标题：NixOS 折腾记
+· 标题含中文，建议用拉丁字符 slug（避免中文文件名/URL）
+· slug 就是文件名：content/posts/<slug>.md，文章 URL 为 /post/<slug>.html
+2/11 文件名 [nixos-折腾记]：nixos-guide
+  → content/posts/nixos-guide.md  ·  URL：/post/nixos-guide.html
+3/11 日期 [2026-08-18]：
+4/11 更新日期（可空，留空不显示"更新于"）：
+5/11 标签（空格分隔，可空）：NixOS 配置
+6/11 摘要（一句话，可空）：把系统写进一个文件
+7/11 阅读时长（分钟，可空=自动估算）：
+8/11 分享图（社交卡片图，相对路径或 URL，可空）：
+9/11 草稿？（y/N）：n
+10/11 置顶？（y/N）：n
+11/11 隐藏目录？（y/N）：n
+
+  确认信息 ────────────────────────
+   1  标题     NixOS 折腾记
+   2  文件名   nixos-guide
+   3  日期     2026-08-18
+   4  更新日期 （空）
+   5  标签     NixOS, 配置
+   6  摘要     把系统写进一个文件
+   7  阅读时长 自动
+   8  分享图   （空）
+   9  草稿     否
+  10  置顶     否
+  11  隐藏目录 否
+  ────────────────────────────
+回车确认生成，或输入编号修改 [确认]：      ← 输入编号可返回修改任意一项
+
+  ✓ 已创建 content/posts/nixos-guide.md
+  → 正在启动开发服务器并打开预览…
+  → http://127.0.0.1:8000/post/nixos-guide.html
+```
+
+向导生成带 frontmatter 的空文章、自动启动（或复用）开发服务器并打开浏览器预览，直接开始写作。文件名输入后会**立即检查冲突**：同名文件、或其他文章 frontmatter 里已占用的 slug 都会被拒绝（绝不覆盖），确认页还能输入编号返回修改任意一项。也可以手动新建 `.md`，开头写 frontmatter：
 
 ```markdown
 ---
+title: 文章标题
+date: 2025-08-20
+updated: 2025-08-25       # 可选，最后更新日期（文章页显示"更新于"，并写入 JSON-LD dateModified）
+tags: [随笔, 代码]
+slug: my-post            # 可选，默认取文件名（不含 .md 后缀）
+summary: 一句话摘要，显示在文章列表里
+minutes: 5               # 可选，手动指定阅读时长（缺省按字数自动估算）
+image: assets/share.png  # 可选，分享卡片图（相对路径或 URL），作为该文的 og:image
+draft: true              # 可选，true 则不发布
+pin: true                # 可选，true 则置顶到文章列表最前
+toc: false               # 可选，false 则隐藏该文章的目录
+---
+
 title: 文章标题
 date: 2025-08-20
 tags: [随笔, 代码]
