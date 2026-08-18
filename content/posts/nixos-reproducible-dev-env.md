@@ -1,8 +1,10 @@
 ---
 title: 用 NixOS 打造可复现的开发环境
 date: 2025-09-02
+updated: 2026-08-20
 tags: [NixOS, 指南]
 slug: nixos-reproducible-dev-env
+image: https://cdn.jsdelivr.net/gh/youthdreamer/image-bed/blog-image/2026-08/%E6%98%8E%E6%97%A5%E9%A6%99.webp
 summary: 从配置、Flakes、Home Manager 到编辑器与桌面的完整工作流，一篇长文讲清楚。
 ---
 
