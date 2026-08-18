@@ -266,6 +266,42 @@ function slugConflict(slug) {
   return '';
 }
 
+/* 字段参考（npm run fields / node new.js --fields） */
+function printFields() {
+  say('');
+  gold('  ◇ frontmatter 字段参考');
+  dim(`  ${'─'.repeat(26)}`);
+  say('');
+  say(`  ${C.gold}必填${C.reset}`);
+  say('    title    文章标题');
+  say('    date     发布日期（YYYY-MM-DD）');
+  say('    slug     文件名 / URL（/post/<slug>.html）');
+  say('');
+  say(`  ${C.gold}可选（不写即缺省）${C.reset}`);
+  say('    updated  最后更新日期（YYYY-MM-DD），文章页显示"更新于"');
+  say('    tags     标签，如 [NixOS, 配置]（英文逗号分隔）');
+  say('    summary  一句话摘要，显示在文章列表里');
+  say('    minutes  手动阅读时长（正整数），缺省自动按字数估算');
+  say('    draft    true=草稿不发布');
+  say('    pin      true=置顶到列表最前');
+  say('    toc      false=隐藏本文目录');
+  say('');
+  say('  示例：');
+  say('    ---');
+  say('    title: 我的文章');
+  say('    date: 2026-08-18');
+  say('    slug: my-post');
+  say('    updated: 2026-08-20');
+  say('    tags: [NixOS, 配置]');
+  say('    summary: 一句话摘要');
+  say('    minutes: 8');
+  say('    draft: true');
+  say('    pin: true');
+  say('    toc: false');
+  say('    ---');
+  say('');
+}
+
 async function main() {
   say('');
   gold('  ◇ 新文章向导');
@@ -299,7 +335,7 @@ async function main() {
     }
   }
 
-  /* 生成文件：顶部附全部可选字段的注释参考（解析器忽略 # 行，放心写） */
+  /* 生成文件（保持干净，字段参考用 npm run fields 查看） */
   const lines = ['---', `title: ${state.title}`, `date: ${state.date}`];
   if (state.updated) lines.push(`updated: ${state.updated}`);
   if (state.tags.length) lines.push(`tags: [${state.tags.join(', ')}]`);
@@ -309,22 +345,13 @@ async function main() {
   if (state.draft) lines.push('draft: true');
   if (state.pin) lines.push('pin: true');
   if (state.toc) lines.push('toc: false');
-  lines.push(
-    '# ── 可选字段：去掉行首 # 即启用，全部留空也没关系 ──',
-    '# updated: 2026-08-20   最后更新日期，文章页显示"更新于"',
-    '# tags: [标签A, 标签B]   标签，多个用英文逗号',
-    '# summary: 一句话摘要    显示在文章列表里',
-    '# minutes: 8            手动阅读时长，缺省自动按字数估算',
-    '# draft: true           草稿（不发布）',
-    '# pin: true             置顶到列表最前',
-    '# toc: false            隐藏本文目录'
-  );
   lines.push('---', '', '');
 
   fs.writeFileSync(path.join(PATHS.posts, `${state.slug}.md`), lines.join('\n'));
   rl.close();
 
   gold(`  ✓ 已创建 content/posts/${state.slug}.md`);
+  dim(`  · 可选字段：updated / tags / summary / minutes / draft / pin / toc · 完整说明：npm run fields`);
 
   /* 启动 dev（若未在运行）并等待就绪；无论哪种情况都汇报 PID 与停止方式 */
   const already = await isPortOpen(PORT);
@@ -359,6 +386,12 @@ function readPid() {
   } catch (e) {
     return '';
   }
+}
+
+/* 支持 --fields / -h：打印字段参考后直接退出 */
+if (process.argv.includes('--fields') || process.argv.includes('-h')) {
+  printFields();
+  process.exit(0);
 }
 
 main().catch((e) => {
