@@ -316,18 +316,21 @@ async function main() {
 
   gold(`  ✓ 已创建 content/posts/${state.slug}.md`);
 
-  /* 启动 dev（若未在运行）并等待就绪 */
+  /* 启动 dev（若未在运行）并等待就绪；无论哪种情况都汇报 PID 与停止方式 */
   const already = await isPortOpen(PORT);
   if (already) {
-    dim('  · 检测到开发服务器已在运行，直接打开预览…');
+    const pid = readPid();
+    dim(`  · 开发服务器已在运行${pid ? `（PID ${pid}）` : ''}：${BASE} · 停止：npm run stop`);
   } else {
-    say('  → 正在启动开发服务器并打开预览…');
+    say(`  → 正在启动开发服务器…`);
     startDev();
-  }
-  const ready = await waitServer();
-  if (!ready) {
-    dim(`  ⚠ 开发服务器未能就绪，请手动运行 node dev.js 后访问 ${BASE}`);
-    return;
+    const ready = await waitServer();
+    if (!ready) {
+      dim(`  ⚠ 开发服务器未能就绪，请手动运行 node dev.js 后访问 ${BASE}`);
+      return;
+    }
+    const pid = readPid();
+    say(`  → 开发服务器已在后台启动${pid ? `（PID ${pid}）` : ''}：${BASE} · 停止：npm run stop`);
   }
 
   /* 等待重建（250ms 防抖 + 构建），再打开页面 */
@@ -336,6 +339,16 @@ async function main() {
   gold(`  → ${url}`);
   say('');
   openBrowser(url);
+}
+
+/* 读取 dev.js 写入的 PID 记录（.dev.pid） */
+function readPid() {
+  const f = path.join(ROOT, '.dev.pid');
+  try {
+    return fs.readFileSync(f, 'utf8').trim() || '';
+  } catch (e) {
+    return '';
+  }
 }
 
 main().catch((e) => {

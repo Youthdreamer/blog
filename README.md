@@ -29,6 +29,7 @@
 node build.js   # 构建站点（输出到 site/）
 node serve.js   # 本地预览（默认 8000，可用 PORT=9000 换端口）
 node dev.js     # 开发模式：编辑 content/ 或 assets/ 保存后自动重建 + 浏览器刷新（推荐写作时用）
+node stop.js    # 停止开发服务器（按 .dev.pid 定位，精确关闭）
 node new.js     # 新文章向导：交互填写标题/日期/标签，生成文件并打开预览（写作入口）
 ```
 

@@ -13,7 +13,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const { build } = require('./lib/build');
-const { PATHS } = require('./lib/config');
+const { PATHS, ROOT } = require('./lib/config');
 
 const PORT = Number(process.env.PORT) || 8000;
 const SITE = PATHS.out;
@@ -118,7 +118,18 @@ for (const dir of [PATHS.content, PATHS.assets]) {
   }
 }
 
+/* 记录 PID：便于 `npm run stop` 精确停止（避免留下看不见的后台进程） */
+const PID_FILE = path.join(ROOT, '.dev.pid');
+try { fs.writeFileSync(PID_FILE, String(process.pid)); } catch (e) { /* 忽略 */ }
+process.on('SIGINT', () => { cleanupPid(); process.exit(0); });
+process.on('SIGTERM', () => { cleanupPid(); process.exit(0); });
+process.on('exit', cleanupPid);
+function cleanupPid() {
+  try { fs.unlinkSync(PID_FILE); } catch (e) { /* 已删除则忽略 */ }
+}
+
 server.listen(PORT, () => {
   console.log(`[dev] 开发服务器已启动 → http://127.0.0.1:${PORT}`);
   console.log('[dev] 编辑 content/ 或 assets/ 下的文件，保存后浏览器自动刷新');
+  console.log(`[dev] 停止：npm run stop（PID ${process.pid}）`);
 });
