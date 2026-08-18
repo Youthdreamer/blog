@@ -12,7 +12,7 @@ const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
 const net = require('net');
-const { execFile, spawn } = require('child_process');
+const { execFile, spawn, spawnSync } = require('child_process');
 const { PATHS, ROOT } = require('./lib/config');
 const { slugify } = require('./lib/utils');
 const { parseFrontmatter } = require('./lib/markdown');
@@ -108,6 +108,40 @@ function openBrowser(url) {
         ? ['cmd', ['/c', 'start', '', url]]
         : ['xdg-open', [url]];
   try { execFile(cmds[0], cmds[1], () => {}); } catch (e) { /* 忽略 */ }
+}
+
+/* 检查命令是否可用 */
+function hasBin(bin) {
+  try {
+    const r = spawnSync(bin, ['--version'], { stdio: 'ignore', timeout: 3000 });
+    return !r.error;
+  } catch (e) {
+    return false;
+  }
+}
+
+/* 自动打开编辑器：优先 $VISUAL/$EDITOR，缺省尝试常见编辑器。
+   同步等待：终端型编辑器（nvim/vim）占用当前终端，关闭后向导继续；
+   GUI 编辑器（code）会自行后台化快速返回 */
+function openEditor(file) {
+  let cmd = (process.env.VISUAL || process.env.EDITOR || '').trim();
+  if (!cmd) {
+    for (const c of ['code', 'nvim', 'vim', 'vi']) {
+      if (hasBin(c)) { cmd = c; break; }
+    }
+  }
+  const name = file.split('/').pop();
+  if (!cmd) {
+    dim(`  · 未找到可用编辑器，请手动打开：content/posts/${name}`);
+    return;
+  }
+  const [bin, ...args] = cmd.split(/\s+/);
+  const r = spawnSync(bin, [...args, file], { stdio: 'inherit' });
+  if (r.error) {
+    dim(`  · 编辑器启动失败（${bin}），请手动打开：content/posts/${name}`);
+  } else {
+    say('  · 编辑器已关闭，保存的内容会自动刷新到浏览器预览');
+  }
 }
 
 /* ---------- 表单状态与提问 ---------- */
@@ -376,6 +410,9 @@ async function main() {
   gold(`  → ${url}`);
   say('');
   openBrowser(url);
+
+  /* 自动打开编辑器，直接开始写作 */
+  openEditor(path.join(PATHS.posts, `${state.slug}.md`));
 }
 
 /* 读取 dev.js 写入的 PID 记录（.dev.pid） */
