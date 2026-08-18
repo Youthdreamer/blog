@@ -11,8 +11,13 @@
 - **图片**：响应式 + 香槟金细边 + 懒加载 + 点击放大（零依赖 lightbox）
 - **首页特效**：鼠标光晕、点击墨滴涟漪、逐字浮现标题（点击可重播）、漂浮墨尘
 - **链接悬停预览**：站内文章富预览 + 外站 favicon/域名预览
+- **阅读体验**：长文自动生成目录（TOC）、阅读进度条、上一篇/下一篇、相关文章推荐（按共同标签）、"全文完"落款
 - **分页**：文章过多时自动分页（`index.html` + `page/N.html`，每页篇数可配置）
-- **标签页**：按 frontmatter 的 `tags` 自动生成标签云（`tags.html`）与各标签归档页（`tag/*.html`）
+- **文章置顶**：frontmatter `pin: true` 置顶，卡片与归档显示 ◇ 标记
+- **标签页**：加权词云（字号随文章数平滑缩放、错峰浮动、悬停金线）与各标签归档页（`tag/*.html`）
+- **回到顶部**：菱形按钮，滚动超过一屏浮现，平滑回顶（尊重减弱动效）
+- **自定义 404**：迷路页自包含渲染（内联 CSS/JS + 链接自愈），任意深度 URL 都正常显示
+- **年份自动获取**：页脚 © 与 est. 构建时自动取当年，建站年单独配置
 - **彩蛋**：键盘敲出 `youth`、连点三次页脚印章
 - **SEO**：canonical、完整 Open Graph、Twitter Card、JSON-LD 结构化数据、`sitemap.xml`、`robots.txt`、RSS feed、社交分享图
 - **响应式与无障碍**：窄屏适配、`prefers-reduced-motion`、焦点环、语义化标签
@@ -39,7 +44,8 @@ node dev.js     # 开发模式：编辑 content/ 或 assets/ 保存后自动重�
 │   ├── utils.js              #   工具函数（转义/日期/阅读时长…）
 │   ├── markdown.js           #   手写 Markdown 解析器
 │   ├── content.js            #   读取 content/ 下的文章与页面
-│   ├── templates.js          #   页面模板（head/nav/footer/文章卡片…）
+│   ├── shell.js              #   页面骨架（head/nav/footer + 404 自包含辅助）
+│   ├── views.js              #   内容视图（文章/首页/标签/关于/404 渲染）
 │   └── build.js              #   构建流程（清理/拷贝/元数据/渲染/SEO 产物）
 ├── assets/
 │   ├── css/                  # 样式（按职责拆分，构建时合并加载）
@@ -48,7 +54,7 @@ node dev.js     # 开发模式：编辑 content/ 或 assets/ 保存后自动重�
 │   │   ├── components.css    #   列表 / 文章 / 代码 / 图片 / 提示
 │   │   └── effects.css       #   特效 / 动画 / 链接预览 / 响应式
 │   ├── js/
-│   │   ├── core.js           #   进度条 / 入场动画 / 提示 / 彩蛋
+│   │   ├── core.js           #   进度条 / 入场动画 / 回到顶部 / 提示 / 彩蛋
 │   │   ├── effects.js        #   首页特效
 │   │   ├── enhance.js        #   图片放大 / 代码高亮复制
 │   │   └── preview.js        #   链接悬停预览
@@ -76,6 +82,7 @@ tags: [随笔, 代码]
 slug: my-post            # 可选，默认取文件名（不含 .md 后缀）
 summary: 一句话摘要，显示在文章列表里
 draft: true              # 可选，true 则不发布
+pin: true                # 可选，true 则置顶到文章列表最前
 ---
 
 正文支持 Markdown：
@@ -93,7 +100,7 @@ draft: true              # 可选，true 则不发布
 对齐方式：`:---` 左对齐、`:---:` 居中、`---:` 右对齐。
 ```
 
-然后 `node build.js` 重新构建。文章按日期倒序排列，`draft: true` 自动隐藏；若两篇文章 slug 重复，构建会**报错并列出冲突的文件与标题**。
+然后 `node build.js` 重新构建。文章按日期倒序排列（`pin: true` 的置顶文章排最前），`draft: true` 自动隐藏；若两篇文章 slug 重复，构建会**报错并列出冲突的文件与标题**。
 
 ### 图片
 
@@ -114,9 +121,12 @@ draft: true              # 可选，true 则不发布
 | --- | --- |
 | 站点名 / 标语 / 作者 | `lib/config.js` 的 `SITE` |
 | 每页文章数 | `lib/config.js` 的 `PAGE_SIZE` |
+| 建站年份（est.） | `lib/config.js` 的 `SITE.founded` |
 | 配色 | `assets/css/base.css` 的 `:root` 变量 |
-| 字体 | `lib/templates.js` 的 `FONTS` + `base.css` 的字体变量 |
-| 导航 / 页脚文字 | `lib/templates.js` 的 `nav()` / `footer()` |
+| 字体 | `lib/shell.js` 的 `FONTS` + `base.css` 的字体变量 |
+| 导航 / 页脚文字 | `lib/shell.js` 的 `nav()` / `footer()` |
+| 相关文章推荐篇数 | `lib/views.js` 的 `relatedPosts()`（`n` 参数） |
+| 回到顶部按钮样式 | `assets/css/components.css` 的 `#to-top` |
 | 彩蛋台词 | `assets/js/core.js` 的 `showToast(...)` |
 | 关于页内容 | `content/pages/about.md` |
 
