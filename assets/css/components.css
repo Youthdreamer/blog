@@ -51,6 +51,15 @@
 }
 .post .meta .no { color: var(--accent-dim); }
 
+/* 置顶标记（首页卡片 / 标签页归档） */
+.pin {
+  font-family: var(--mono);
+  font-size: .58rem;
+  letter-spacing: .18em;
+  color: var(--accent);
+}
+.pin::before { content: "◇ "; }
+
 .post h2 {
   margin: .55em 0 .4em;
   font-size: clamp(1.32rem, 3vw, 1.72rem);
@@ -110,42 +119,81 @@
   font-size: clamp(2.4rem, 7vw, 4rem);
 }
 
-/* 标签云（tags.html）——衬线、留白 */
-.tag-cloud {
+/* 标签词云（tags.html）——简洁大气的加权词云：
+   无框无装饰，衬线大字；字号按文章数平滑缩放（由内联 font-size 驱动），
+   颜色统一，权重隐约可见不突兀；每个标签以极轻的错峰悬浮缓慢浮动，
+   悬停时停驻、转金，底部金细线从左向右流动描出指向。
+   尊重 prefers-reduced-motion（见 effects.css） */
+.word-cloud {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 1.3rem 2.6rem;
-  list-style: none;
-  margin: 0;
+  align-items: baseline;
+  gap: 1rem 2.2rem;
+  max-width: 58rem;
+  margin: 1.2rem auto 0;
   padding: 0;
+  list-style: none;
 }
-.tag-cloud a {
+/* 标签页专用：页面头部较矮，收紧标题与词云之间的空隙 */
+.tag-section {
+  padding-top: 2.2rem;
+}
+.word-cloud li {
+  display: inline-flex;
+  line-height: 2.3;
+}
+.word-cloud a {
+  position: relative;
   display: inline-flex;
   align-items: baseline;
-  gap: .55em;
+  gap: .5em;
+  padding-bottom: .12em;
   text-decoration: none;
-  color: var(--ink-2);
-  transition: color .3s var(--ease);
+  color: inherit;
+  animation: cloud-float 8s ease-in-out var(--fd, 0s) infinite;
+  transition: color .4s var(--ease);
 }
-.tag-cloud a:hover { color: var(--accent-br); }
-.tag-name {
+/* 悬停：停驻 + 底部金细线从左向右流动描出 */
+.word-cloud a::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 1px;
+  background: linear-gradient(90deg, var(--accent-br), var(--accent-dim) 70%, transparent);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform .55s var(--ease);
+}
+.word-cloud a:hover {
+  color: var(--accent-br);
+  animation-play-state: paused;
+}
+.word-cloud a:hover::after { transform: scaleX(1); }
+@keyframes cloud-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+.word-cloud .wc-name {
   font-family: var(--serif);
-  font-size: 1.2rem;
   font-weight: 300;
   letter-spacing: .02em;
+  color: var(--ink); /* 颜色统一，权重只靠字号 */
+  transition: color .4s var(--ease);
 }
-.tag-count {
+.word-cloud .wc-count {
   font-family: var(--mono);
-  font-size: .64rem;
+  font-size: .6rem;
   color: var(--accent-dim);
 }
 
-/* 紧凑归档列表（标签页） */
+/* 紧凑归档列表（标签页）——悬停：左缘金线描过 + 整行右移 + 标题转金，
+   与首页卡片同一套悬停语言，明确指向当前文章 */
 .idx-list {
   margin-top: .5rem;
 }
 .idx {
+  position: relative;
   display: flex;
   align-items: baseline;
   justify-content: space-between;
@@ -154,10 +202,21 @@
   border-top: 1px solid var(--line);
   text-decoration: none;
   color: inherit;
-  transition: padding-left .4s var(--ease);
+  transition: transform .5s var(--ease);
+}
+.idx::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 18%; bottom: 18%;
+  width: 1px;
+  background: linear-gradient(180deg, transparent, var(--accent) 35%, var(--accent) 65%, transparent);
+  transform: scaleY(0);
+  transform-origin: center;
+  transition: transform .55s var(--ease);
 }
 .idx:last-child { border-bottom: 1px solid var(--line); }
-.idx:hover { padding-left: .9rem; }
+.idx:hover { transform: translateX(.7rem); }
+.idx:hover::before { transform: scaleY(1); }
 .idx-date {
   font-family: var(--mono);
   font-size: .66rem;
@@ -165,6 +224,7 @@
   color: var(--ink-3);
   white-space: nowrap;
   flex: 0 0 auto;
+  transition: color .3s;
 }
 .idx-title {
   font-family: var(--serif);
@@ -176,6 +236,7 @@
   transition: color .3s;
 }
 .idx:hover .idx-title { color: var(--accent-br); }
+.idx:hover .idx-date { color: var(--accent-dim); }
 
 /* 文章页标签 */
 .article-tags {
@@ -415,16 +476,23 @@
   margin: 3.4em auto;
 }
 
+/* 表格：外层可横向滚动容器（移动端窄屏不挤压，左右滑动查看） */
+.table-wrap {
+  overflow-x: auto;
+  margin: 2em 0;
+  -webkit-overflow-scrolling: touch;
+}
+.table-wrap table { margin: 0; }
 .article table {
   width: 100%;
   border-collapse: collapse;
-  margin: 2em 0;
   font-size: .92rem;
 }
 .article th, .article td {
   border-bottom: 1px solid var(--line);
   padding: .6em .8em;
   text-align: left;
+  white-space: nowrap; /* 单元格不换行，超出时横向滚动 */
 }
 .article th { font-weight: 400; color: var(--accent); font-family: var(--mono); font-size: .72rem; letter-spacing: .12em; }
 
@@ -554,6 +622,141 @@
   transition: color .3s;
 }
 .pn:hover .pn-title { color: var(--accent-br); }
+
+/* 相关文章（文章底部，按共同标签推荐） */
+.related {
+  margin: 4.5rem 0 2rem;
+  padding-top: 2.2rem;
+  border-top: 1px solid var(--line);
+}
+.related-label {
+  display: flex;
+  align-items: center;
+  gap: .9rem;
+  margin: 0 0 1.2rem;
+  font-family: var(--mono);
+  font-size: .62rem;
+  letter-spacing: .3em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.related-label::before { content: "◇"; color: var(--accent-dim); font-size: .5rem; }
+.related-label::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+.related-item {
+  position: relative;
+  display: flex;
+  align-items: baseline;
+  gap: 1.2rem;
+  padding: .8em .1rem .9em;
+  border-top: 1px solid var(--line);
+  text-decoration: none;
+  color: inherit;
+}
+/* 关键：.article a (0,1,1) 会覆盖 .related-item (0,1,0) 的 transition，
+   这里用更高优先级 (.article a.related-item, 0,2,1) 压回去，
+   同时清掉 .article a 给相关文章行加的的金色底线 */
+.article a.related-item {
+  transition: transform .5s var(--ease);
+  border-bottom: 0;
+}
+.article a.related-item:last-child { border-bottom: 1px solid var(--line); }
+/* 悬停：与标签页文章列表（.idx）同一套——左缘金线竖向描过 + 整行右移 + 变色 */
+.related-item::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 18%; bottom: 18%;
+  width: 1px;
+  background: linear-gradient(180deg, transparent, var(--accent) 35%, var(--accent) 65%, transparent);
+  transform: scaleY(0);
+  transform-origin: center;
+  transition: transform .55s var(--ease);
+}
+.related-item:hover { transform: translateX(.7rem); }
+.related-item:hover::before { transform: scaleY(1); }
+.related-date {
+  flex: 0 0 auto;
+  font-family: var(--mono);
+  font-size: .62rem;
+  letter-spacing: .08em;
+  color: var(--ink-3);
+  white-space: nowrap;
+  transition: color .3s;
+}
+.related-title {
+  font-family: var(--serif);
+  font-size: 1rem;
+  font-weight: 300;
+  color: var(--ink-2);
+  transition: color .3s;
+}
+.related-item:hover .related-title { color: var(--accent-br); }
+.related-item:hover .related-date { color: var(--accent-dim); }
+
+/* 全文完落款：文章末尾居中，两侧发丝线，随滚动淡入 */
+.the-end {
+  display: flex;
+  align-items: center;
+  gap: 1.3rem;
+  max-width: 26rem;
+  margin: 4.2rem auto 0;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: .95rem;
+  letter-spacing: .3em;
+  color: var(--ink-3);
+}
+.the-end::before,
+.the-end::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+.the-end::before { background: linear-gradient(90deg, transparent, var(--line)); }
+.the-end::after { background: linear-gradient(90deg, var(--line), transparent); }
+
+/* 回到顶部：菱形按钮（呼应加载动画的菱形），内置"钻石箭头"——
+   细线箭杆 + 实心小钻石箭头，尖端直指菱形顶端，示意回到顶部；
+   滚动超过一屏后浮现；悬停时整枚上浮、泛金 */
+#to-top {
+  position: fixed;
+  right: 1.6rem;
+  bottom: 1.6rem;
+  z-index: 400;
+  width: 3rem;
+  height: 3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--accent);
+  cursor: pointer;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(10px);
+  transition: opacity .4s var(--ease), transform .4s var(--ease),
+    visibility .4s, color .3s;
+}
+#to-top svg {
+  width: 82%;
+  height: 82%;
+  display: block;
+  transition: transform .45s var(--ease);
+}
+#to-top.show {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+}
+#to-top:hover { color: var(--accent-br); }
+#to-top:hover svg { transform: translateY(-2px); }
+#to-top:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 4px;
+  border-radius: 4px;
+}
 
 /* ---------- 进度条 & 提示 ---------- */
 

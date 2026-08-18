@@ -40,6 +40,22 @@
     revealEls.forEach(function (el) { el.classList.add('in'); });
   }
 
+  /* ---------- 回到顶部 ---------- */
+  var toTop = document.getElementById('to-top');
+  if (toTop) {
+    var toggleTop = function () {
+      var y = window.scrollY || document.documentElement.scrollTop;
+      toTop.classList.toggle('show', y > 500);
+    };
+    window.addEventListener('scroll', toggleTop, { passive: true });
+    toggleTop();
+    toTop.addEventListener('click', function () {
+      var reduce = window.matchMedia &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' });
+    });
+  }
+
   /* ---------- 提示 ---------- */
   var toast = document.getElementById('toast');
   var toastTimer = null;

@@ -205,6 +205,8 @@
   .article header { margin-top: 7.5rem; }
   .article .content { font-size: .99rem; }
   .post:hover { transform: translateX(.6rem); }
+  #to-top { right: 1rem; bottom: 1rem; width: 2.6rem; height: 2.6rem; }
+  .word-cloud { gap: .8rem 1.4rem; margin-top: 1rem; }
   #toast { white-space: normal; max-width: 84vw; text-align: center; line-height: 1.8; }
 }
 
