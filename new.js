@@ -5,7 +5,7 @@
    new.js — 新文章向导（一问一答，create-next-app 风格，零依赖）
    逐项填写 frontmatter 全部字段，生成 content/posts/<slug>.md，
    然后自动启动开发服务器并在浏览器打开预览，直接开始写作。
-   用法：node new.js   （或 npm run new）
+   用法：node new.js   （或 pnpm run new）
    ============================================================ */
 
 const fs = require('fs');
@@ -300,7 +300,7 @@ function slugConflict(slug) {
   return '';
 }
 
-/* 字段参考（npm run fields / node new.js --fields） */
+/* 字段参考（pnpm run fields / node new.js --fields） */
 function printFields() {
   say('');
   gold('  ◇ frontmatter 字段参考');
@@ -369,7 +369,7 @@ async function main() {
     }
   }
 
-  /* 生成文件（保持干净，字段参考用 npm run fields 查看） */
+  /* 生成文件（保持干净，字段参考用 pnpm run fields 查看） */
   const lines = ['---', `title: ${state.title}`, `date: ${state.date}`];
   if (state.updated) lines.push(`updated: ${state.updated}`);
   if (state.tags.length) lines.push(`tags: [${state.tags.join(', ')}]`);
@@ -384,7 +384,7 @@ async function main() {
   fs.writeFileSync(path.join(PATHS.posts, `${state.slug}.md`), lines.join('\n'));
 
   gold(`  ✓ 已创建 content/posts/${state.slug}.md`);
-  dim(`  · 可选字段：updated / tags / summary / minutes / draft / pin / toc · 完整说明：npm run fields`);
+  dim(`  · 可选字段：updated / tags / summary / minutes / draft / pin / toc · 完整说明：pnpm run fields`);
 
   /* 询问是否立即打开编辑器（默认不打开，避免侵入） */
   const openNow = /^y/i.test(await ask('打开编辑器开始写作？（y/N）'));
@@ -394,7 +394,7 @@ async function main() {
   const already = await isPortOpen(PORT);
   if (already) {
     const pid = readPid();
-    dim(`  · 开发服务器已在运行${pid ? `（PID ${pid}）` : ''}：${BASE} · 停止：npm run stop`);
+    dim(`  · 开发服务器已在运行${pid ? `（PID ${pid}）` : ''}：${BASE} · 停止：pnpm run stop`);
   } else {
     say(`  → 正在启动开发服务器…`);
     startDev();
@@ -404,7 +404,7 @@ async function main() {
       return;
     }
     const pid = readPid();
-    say(`  → 开发服务器已在后台启动${pid ? `（PID ${pid}）` : ''}：${BASE} · 停止：npm run stop`);
+    say(`  → 开发服务器已在后台启动${pid ? `（PID ${pid}）` : ''}：${BASE} · 停止：pnpm run stop`);
   }
 
   /* 等待重建（250ms 防抖 + 构建），再打开页面 */

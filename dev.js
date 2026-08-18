@@ -4,7 +4,7 @@
 /* ============================================================
    dev.js — 开发模式：构建 + 预览 + 监听 + 浏览器实时刷新
 
-   用法：node dev.js   （或 npm run dev）
+   用法：node dev.js   （或 pnpm run dev）
    编辑 content/ 下的 .md 或 assets/ 下的样式/脚本，保存后
    自动重新构建，并让浏览器自动刷新。
    ============================================================ */
@@ -118,7 +118,7 @@ for (const dir of [PATHS.content, PATHS.assets]) {
   }
 }
 
-/* 记录 PID：便于 `npm run stop` 精确停止（避免留下看不见的后台进程） */
+/* 记录 PID：便于 `pnpm run stop` 精确停止（避免留下看不见的后台进程） */
 const PID_FILE = path.join(ROOT, '.dev.pid');
 try { fs.writeFileSync(PID_FILE, String(process.pid)); } catch (e) { /* 忽略 */ }
 process.on('SIGINT', () => { cleanupPid(); process.exit(0); });
@@ -131,5 +131,5 @@ function cleanupPid() {
 server.listen(PORT, () => {
   console.log(`[dev] 开发服务器已启动 → http://127.0.0.1:${PORT}`);
   console.log('[dev] 编辑 content/ 或 assets/ 下的文件，保存后浏览器自动刷新');
-  console.log(`[dev] 停止：npm run stop（PID ${process.pid}）`);
+  console.log(`[dev] 停止：pnpm run stop（PID ${process.pid}）`);
 });

@@ -4,7 +4,7 @@
 /* ============================================================
    stop.js — 停止开发服务器（零依赖）
    按 .dev.pid 定位 dev.js 进程并发送 SIGTERM。
-   用法：node stop.js   （或 npm run stop）
+   用法：node stop.js   （或 pnpm run stop）
    ============================================================ */
 
 const fs = require('fs');

@@ -4,9 +4,10 @@
 
 ## 特性
 
-- **零 npm 依赖**：构建与预览只用 Node 内置模块，不 `npm install`、不会坏
+- **零依赖**：构建与预览只用 Node 内置模块，无任何第三方包；pnpm 仅作脚本入口，无需 `pnpm install`
 - **手写 Markdown 解析器**：标题、粗体/斜体/删除线、行内代码、内/外链接、图片（含图注）、引用、有序/无序列表、表格（GFM 管道语法，支持对齐）、分隔线、围栏代码块
-- **服务端构建**：Markdown → 纯静态 HTML（`node build.js`）
+- **服务端构建**：Markdown → 纯静态 HTML（`pnpm run build`）
+- **新文章向导**：`pnpm run new` 一问一答填写全部字段，自动生成文章、打开预览、可选拉起编辑器
 - **代码高亮 + 复制按钮**：highlight.js 本地自托管 + 手写复制交互
 - **图片**：响应式 + 香槟金细边 + 懒加载 + 点击放大（零依赖 lightbox）
 - **首页特效**：鼠标光晕、点击墨滴涟漪、逐字浮现标题（点击可重播）、漂浮墨尘
@@ -26,12 +27,15 @@
 ## 快速开始
 
 ```bash
-node build.js   # 构建站点（输出到 site/）
-node serve.js   # 本地预览（默认 8000，可用 PORT=9000 换端口）
-node dev.js     # 开发模式：编辑 content/ 或 assets/ 保存后自动重建 + 浏览器刷新（推荐写作时用）
-node stop.js    # 停止开发服务器（按 .dev.pid 定位，精确关闭）
-node new.js     # 新文章向导：交互填写标题/日期/标签，生成文件并打开预览（写作入口）
+pnpm run new      # 新文章向导：交互填写标题/日期/标签…，生成文件 + 打开预览（写作入口，推荐）
+pnpm run dev      # 开发模式：编辑 content/ 或 assets/ 保存后自动重建 + 浏览器刷新
+pnpm run build    # 一次性构建站点（输出到 site/）
+pnpm run serve    # 静态预览（默认 8000，可用 PORT=9000 换端口）
+pnpm run stop     # 停止开发服务器（按 .dev.pid 定位，精确关闭）
+pnpm run fields   # frontmatter 全部字段参考
 ```
+
+全部命令等价于 `node <脚本>.js`，pnpm 只是脚本入口（零依赖，无需 install）。
 
 打开 http://127.0.0.1:8000 即可。
 
@@ -41,6 +45,7 @@ node new.js     # 新文章向导：交互填写标题/日期/标签，生成文
 .
 ├── build.js                  # 构建入口（薄，委托给 lib/）
 ├── new.js                    # 新文章向导（交互生成文章 + 打开预览）
+├── stop.js                   # 停止开发服务器（按 .dev.pid 定位）
 ├── serve.js                  # 本地预览服务器（零依赖，支持自定义 404）
 ├── lib/                      # 构建逻辑（模块化）
 │   ├── config.js             #   站点配置 + 路径常量
@@ -73,9 +78,19 @@ node new.js     # 新文章向导：交互填写标题/日期/标签，生成文
 └── site/                     # 构建产物（已被 git 忽略）
 ```
 
+## Nix 开发环境（NixOS）
+
+项目带 `flake.nix`（`.envrc` 已配 `use flake`），进入目录自动加载开发环境：
+
+- **工具**：Node 24、pnpm（脚本入口）、git、ImageMagick（图片处理）
+- **进入方式**：`nix develop`（或装 `direnv` 后进入目录自动激活）
+- **可复现构建**：`nix build` 输出纯静态站点到 `result/`
+- **一键起 dev**：`nix run .#dev`
+- 修改 `flake.nix` 后执行 `nix flake update` 或 `nix develop --refresh` 生效
+
 ## 写一篇文章
 
-**推荐入口：`npm run new`**（或 `node new.js`）——create-next-app 式一问一答向导，把 frontmatter 所有字段问全：
+**推荐入口：`pnpm run new`**（或 `node new.js`）——create-next-app 式一问一答向导，把 frontmatter 所有字段问全：
 
 ```
 $ node new.js
@@ -116,7 +131,7 @@ $ node new.js
   → http://127.0.0.1:8000/post/nixos-guide.html
 ```
 
-向导生成带 frontmatter 的空文章（保持干净），并自动启动（或复用）开发服务器打开浏览器预览，询问后可用 $VISUAL/$EDITOR 打开新文件直接写作（默认不打开，回车跳过）。全部字段参考随时用 `npm run fields` 查看。文件名输入后会**立即检查冲突**：同名文件、或其他文章 frontmatter 里已占用的 slug 都会被拒绝（绝不覆盖），确认页还能输入编号返回修改任意一项。也可以手动新建 `.md`，开头写 frontmatter：
+向导生成带 frontmatter 的空文章（保持干净），并自动启动（或复用）开发服务器打开浏览器预览，询问后可用 $VISUAL/$EDITOR 打开新文件直接写作（默认不打开，回车跳过）。全部字段参考随时用 `pnpm run fields` 查看。文件名输入后会**立即检查冲突**：同名文件、或其他文章 frontmatter 里已占用的 slug 都会被拒绝（绝不覆盖），确认页还能输入编号返回修改任意一项。也可以手动新建 `.md`，开头写 frontmatter：
 
 ```markdown
 ---
@@ -130,15 +145,6 @@ minutes: 5               # 可选，手动指定阅读时长（缺省按字数�
 draft: true              # 可选，true 则不发布
 pin: true                # 可选，true 则置顶到文章列表最前
 toc: false               # 可选，false 则隐藏该文章的目录
----
-
-title: 文章标题
-date: 2025-08-20
-tags: [随笔, 代码]
-slug: my-post            # 可选，默认取文件名（不含 .md 后缀）
-summary: 一句话摘要，显示在文章列表里
-draft: true              # 可选，true 则不发布
-pin: true                # 可选，true 则置顶到文章列表最前
 ---
 
 正文支持 Markdown：
