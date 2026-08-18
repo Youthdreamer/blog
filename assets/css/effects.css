@@ -221,5 +221,6 @@
   [data-reveal] { opacity: 1; transform: none; }
   .ch { opacity: 1; }
   .dust { display: none; }
+  .spark { display: none; }
   .hero .scroll { animation: none; }
 }

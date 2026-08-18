@@ -80,10 +80,10 @@
     }
   });
 
-  /* ---------- 彩蛋二：连击印章 ---------- */
-  var seal = document.querySelector('.seal');
+  /* ---------- 彩蛋二：连击印章（页脚 + 隐藏落款的印章） ---------- */
+  var seals = document.querySelectorAll('.seal, .secret-seal');
   var clicks = 0, clickTimer = null;
-  if (seal) {
+  seals.forEach(function (seal) {
     seal.addEventListener('click', function () {
       clicks++;
       clearTimeout(clickTimer);
@@ -93,7 +93,7 @@
         clicks = 0;
       }
     });
-  }
+  });
 
   /* ---------- 页脚年份 ---------- */
   document.querySelectorAll('[data-year]').forEach(function (el) {
