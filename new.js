@@ -9,6 +9,7 @@
    ============================================================ */
 
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 const readline = require('readline');
 const net = require('net');
@@ -79,11 +80,14 @@ function isPortOpen(port) {
   });
 }
 
-/* 启动开发服务器（detached，向导退出后继续运行） */
+/* 启动开发服务器（detached，向导退出后继续运行）。
+   日志重定向到临时文件而非终端：否则向导把终端交给编辑器
+   （nvim/vim）后，dev 的重建提示会直接冲进编辑器画面 */
 function startDev() {
+  const log = fs.openSync(path.join(os.tmpdir(), 'youth-dev.log'), 'a');
   const dev = spawn(process.execPath, ['dev.js'], {
     cwd: ROOT,
-    stdio: 'inherit',
+    stdio: ['ignore', log, log],
     detached: true,
   });
   dev.unref();
