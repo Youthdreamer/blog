@@ -447,12 +447,20 @@ async function main() {
   }
   rl.close();
 
-  /* 启动 dev（若未在运行）并等待就绪 */
-  const already = await isPortOpen(PORT);
+  /* 启动 dev：确保在本终端前台运行——若端口被本博客旧 dev 占用，先停掉再重启 */
+  let already = await isPortOpen(PORT);
+  if (already) {
+    const pid = Number(readPid());
+    if (pid && isAlive(pid)) {
+      dim(`  · 检测到旧开发服务器（PID ${pid}），先停止它，改为本终端前台运行…`);
+      try { process.kill(pid, 'SIGTERM'); } catch (e) { /* 忽略 */ }
+      for (let i = 0; i < 20 && (await isPortOpen(PORT)); i++) await sleep(300);
+      already = await isPortOpen(PORT);
+    }
+  }
   let devChild = null;
   if (already) {
-    const pid = readPid();
-    dim(`  · 开发服务器已在运行${pid ? `（PID ${pid}）` : ''}：${BASE} · 停止：pnpm run stop`);
+    dim(`  · 端口 ${PORT} 被其他进程占用（非本博客 dev），无法在本终端启动；仅打开预览与编辑器`);
   } else {
     say(`  → 启动开发服务器（前台运行，日志持续显示，Ctrl+C 停止）…`);
     devChild = startDev();
@@ -485,6 +493,11 @@ async function main() {
     dim('  · 开发服务器前台运行中——编辑保存即刷新浏览器；Ctrl+C 停止');
     await new Promise((resolve) => devChild.on('exit', resolve));
   }
+}
+
+/* 进程是否存活 */
+function isAlive(pid) {
+  try { process.kill(pid, 0); return true; } catch (e) { return false; }
 }
 
 /* 读取 dev.js 写入的 PID 记录（.dev.pid） */
