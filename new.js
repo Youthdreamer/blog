@@ -407,6 +407,7 @@ async function main() {
 
   /* 启动 dev（若未在运行）并等待就绪；无论哪种情况都汇报 PID 与停止方式 */
   const already = await isPortOpen(PORT);
+  const spawned = !already; // 本次是否由向导启动 dev（决定是否回显日志）
   if (already) {
     const pid = readPid();
     dim(`  · 开发服务器已在运行${pid ? `（PID ${pid}）` : ''}：${BASE} · 停止：pnpm run stop`);
@@ -434,6 +435,31 @@ async function main() {
     openEditor(path.join(PATHS.posts, `${state.slug}.md`));
   } else {
     dim(`  · 未打开编辑器，可直接编辑：content/posts/${state.slug}.md`);
+  }
+
+  /* 回显 dev 服务器最近日志（仅当向导本次启动它时），无需另开终端查看 */
+  if (spawned) {
+    showDevTail();
+  }
+}
+
+/* 展示 dev 服务器最近日志的尾部（构建结果 / 报错），完整日志在临时文件 */
+function showDevTail() {
+  const f = path.join(os.tmpdir(), 'youth-dev.log');
+  try {
+    const lines = fs
+      .readFileSync(f, 'utf8')
+      .trim()
+      .split('\n')
+      .filter((l) => l.trim());
+    const tail = lines.slice(-6);
+    if (!tail.length) return;
+    say('');
+    dim('  · 开发服务器最近日志：');
+    tail.forEach((l) => dim('    ' + l));
+    dim('  · 完整日志：/tmp/youth-dev.log（实时查看：tail -f /tmp/youth-dev.log）');
+  } catch (e) {
+    /* 无日志可忽略 */
   }
 }
 
