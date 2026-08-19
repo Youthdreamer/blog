@@ -13,7 +13,7 @@ const path = require('path');
 const readline = require('readline');
 const net = require('net');
 const { execFile, spawn, spawnSync } = require('child_process');
-const { PATHS, ROOT } = require('./lib/config');
+const { PATHS, ROOT, SITE } = require('./lib/config');
 const { slugify } = require('./lib/utils');
 const { parseFrontmatter } = require('./lib/markdown');
 
@@ -181,7 +181,7 @@ const fieldNum = (key) => FIELD_ORDER.indexOf(key) + 1;
 
 /* 逐个提问某个字段；校验不过就重复问 */
 async function askField(key) {
-  const num = `${fieldNum(key)}/${FIELD_ORDER.length} `;
+  const num = `${C.gold}${String(fieldNum(key)).padStart(2, '0')}${C.reset}${C.dim}/${FIELD_ORDER.length}${C.reset} `;
   if (key === 'title') {
     while (true) {
       const v = await ask(`${num}标题`);
@@ -210,7 +210,7 @@ async function askField(key) {
         continue;
       }
       state.slug = v;
-      dim(`  → content/posts/${v}.md  ·  URL：/post/${v}.html`);
+      say(`  ${C.gold}→${C.reset} content/posts/${v}.md · URL：/post/${v}.html`);
       return;
     }
   }
@@ -278,8 +278,8 @@ function showState() {
     else if (k === 'tags') v = state.tags.join(', ');
     else if (k === 'minutes') v = state[k] || '自动';
     else v = state[k];
-    const label = pad(FIELD_LABEL[k], 8);
-    say(`  ${C.gold}${String(i + 1).padStart(2)}${C.reset}  ${label}${v || C.dim + '（空）' + C.reset}`);
+    const label = pad(FIELD_LABEL[k], 10);
+    say(`  ${C.gold}№ ${String(i + 1).padStart(2, '0')}${C.reset}  ${label}${v || C.dim + '（空）' + C.reset}`);
   });
   say(`  ${C.dim}${'─'.repeat(28)}${C.reset}`);
 }
@@ -342,8 +342,8 @@ function printFields() {
 
 async function main() {
   say('');
-  gold('  ◇ 新文章向导');
-  dim(`  ${'─'.repeat(26)}`);
+  gold(`  ◇ ${SITE.name} · 新文章向导`);
+  dim(`  ${'─'.repeat(28)}`);
   say('');
 
   /* 第一轮：逐个提问 */
