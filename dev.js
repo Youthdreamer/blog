@@ -100,6 +100,8 @@ function schedule() {
   clearTimeout(timer);
   timer = setTimeout(() => {
     try {
+      // 分割线：连续多次重建的日志之间清晰分界
+      console.log('\n' + '─'.repeat(46) + '  ' + new Date().toLocaleTimeString());
       build();
       broadcast();
       console.log(`[dev] ✓ 已重新构建 ${new Date().toLocaleTimeString()}`);
