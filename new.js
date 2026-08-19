@@ -81,13 +81,12 @@ function isPortOpen(port) {
 }
 
 /* 启动开发服务器（detached，向导退出后继续运行）。
-   日志重定向到临时文件而非终端：否则向导把终端交给编辑器
-   （nvim/vim）后，dev 的重建提示会直接冲进编辑器画面 */
+   dev.js 已自行把日志写入 /tmp/youth-dev.log，这里不占终端，
+   避免向导把终端交给编辑器（nvim/vim）后日志冲进编辑器画面 */
 function startDev() {
-  const log = fs.openSync(path.join(os.tmpdir(), 'youth-dev.log'), 'a');
   const dev = spawn(process.execPath, ['dev.js'], {
     cwd: ROOT,
-    stdio: ['ignore', log, log],
+    stdio: 'ignore',
     detached: true,
   });
   dev.unref();
@@ -407,7 +406,6 @@ async function main() {
 
   /* 启动 dev（若未在运行）并等待就绪；无论哪种情况都汇报 PID 与停止方式 */
   const already = await isPortOpen(PORT);
-  const spawned = !already; // 本次是否由向导启动 dev（决定是否回显日志）
   if (already) {
     const pid = readPid();
     dim(`  · 开发服务器已在运行${pid ? `（PID ${pid}）` : ''}：${BASE} · 停止：pnpm run stop`);
@@ -437,10 +435,8 @@ async function main() {
     dim(`  · 未打开编辑器，可直接编辑：content/posts/${state.slug}.md`);
   }
 
-  /* 回显 dev 服务器最近日志（仅当向导本次启动它时），无需另开终端查看 */
-  if (spawned) {
-    showDevTail();
-  }
+  /* 回显 dev 服务器最近日志（每次运行都显示，日志由 dev.js 持续写入文件） */
+  showDevTail();
 }
 
 /* 展示 dev 服务器最近日志的尾部（构建结果 / 报错），完整日志在临时文件 */
