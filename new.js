@@ -80,15 +80,13 @@ function isPortOpen(port) {
   });
 }
 
-/* 启动开发服务器（detached，向导退出后继续运行）。
-   日志直出当前终端：编辑器在独立终端窗口打开，互不干扰 */
+/* 启动开发服务器（前台：日志持续显示在当前终端，Ctrl+C 停止；
+   编辑器在独立窗口，两个终端互不干扰） */
 function startDev() {
-  const dev = spawn(process.execPath, ['dev.js'], {
+  return spawn(process.execPath, ['dev.js'], {
     cwd: ROOT,
     stdio: 'inherit',
-    detached: true,
   });
-  dev.unref();
 }
 
 /* 等待开发服务器就绪 */
@@ -449,21 +447,22 @@ async function main() {
   }
   rl.close();
 
-  /* 启动 dev（若未在运行）并等待就绪；无论哪种情况都汇报 PID 与停止方式 */
+  /* 启动 dev（若未在运行）并等待就绪 */
   const already = await isPortOpen(PORT);
+  let devChild = null;
   if (already) {
     const pid = readPid();
     dim(`  · 开发服务器已在运行${pid ? `（PID ${pid}）` : ''}：${BASE} · 停止：pnpm run stop`);
   } else {
-    say(`  → 正在启动开发服务器…`);
-    startDev();
+    say(`  → 启动开发服务器（前台运行，日志持续显示，Ctrl+C 停止）…`);
+    devChild = startDev();
     const ready = await waitServer();
     if (!ready) {
       dim(`  ⚠ 开发服务器未能就绪，请手动运行 node dev.js 后访问 ${BASE}`);
       return;
     }
     const pid = readPid();
-    say(`  → 开发服务器已在后台启动${pid ? `（PID ${pid}）` : ''}：${BASE} · 停止：pnpm run stop`);
+    say(`  → 开发服务器已就绪${pid ? `（PID ${pid}）` : ''}：${BASE} · 停止：Ctrl+C 或 pnpm run stop`);
   }
 
   /* 等待重建（250ms 防抖 + 构建），再打开页面 */
@@ -478,6 +477,13 @@ async function main() {
     openEditor(path.join(PATHS.posts, `${state.slug}.md`));
   } else {
     dim(`  · 未打开编辑器，可直接编辑：content/posts/${state.slug}.md`);
+  }
+
+  /* 前台 dev：本终端即 dev 控制台，挂住直到 Ctrl+C（编辑器窗口独立不受影响） */
+  if (devChild) {
+    say('');
+    dim('  · 开发服务器前台运行中——编辑保存即刷新浏览器；Ctrl+C 停止');
+    await new Promise((resolve) => devChild.on('exit', resolve));
   }
 }
 
