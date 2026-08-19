@@ -11,25 +11,9 @@
 
 const http = require('http');
 const fs = require('fs');
-const os = require('os');
 const path = require('path');
 const { build } = require('./lib/build');
 const { PATHS, ROOT } = require('./lib/config');
-
-/* 日志同时写入临时文件：向导每次运行都能回显最新日志，
-   且向导启动的 dev 不写终端（编辑器画面保持干净） */
-const DEV_LOG = path.join(os.tmpdir(), 'youth-dev.log');
-['log', 'warn', 'error'].forEach((m) => {
-  const orig = console[m].bind(console);
-  console[m] = (...args) => {
-    orig(...args);
-    try {
-      fs.appendFileSync(DEV_LOG, args.map((a) => (typeof a === 'string' ? a : JSON.stringify(a))).join(' ') + '\n');
-    } catch (e) {
-      /* 写日志失败不影响运行 */
-    }
-  };
-});
 
 const PORT = Number(process.env.PORT) || 8000;
 const SITE = PATHS.out;

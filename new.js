@@ -81,12 +81,11 @@ function isPortOpen(port) {
 }
 
 /* 启动开发服务器（detached，向导退出后继续运行）。
-   dev.js 已自行把日志写入 /tmp/youth-dev.log，这里不占终端，
-   避免向导把终端交给编辑器（nvim/vim）后日志冲进编辑器画面 */
+   日志直出当前终端：编辑器在独立终端窗口打开，互不干扰 */
 function startDev() {
   const dev = spawn(process.execPath, ['dev.js'], {
     cwd: ROOT,
-    stdio: 'ignore',
+    stdio: 'inherit',
     detached: true,
   });
   dev.unref();
@@ -133,8 +132,34 @@ function resolveEditor() {
   return null;
 }
 
-/* 自动打开编辑器：同步等待，终端型编辑器（nvim/vim）占用当前终端，
-   关闭后向导继续；GUI 编辑器（code）会自行后台化快速返回 */
+/* 检测可用的终端模拟器：返回 [命令, ...前缀参数]；无则 null */
+function detectTerminal() {
+  const env = (process.env.TERMINAL || '').trim();
+  if (env) {
+    const parts = env.split(/\s+/);
+    if (parts.length && hasBin(parts[0])) return parts;
+  }
+  const candidates = [
+    ['kitty', '-e'],
+    ['alacritty', '-e'],
+    ['foot'],
+    ['wezterm', 'start', '--'],
+    ['gnome-terminal', '--'],
+    ['konsole', '-e'],
+    ['xterm', '-e'],
+  ];
+  for (const c of candidates) {
+    if (hasBin(c[0])) return c;
+  }
+  return null;
+}
+
+/* 终端型编辑器（需要 TTY 的），GUI 编辑器不算 */
+const TERM_EDITORS = new Set(['nvim', 'vim', 'vi', 'emacs', 'nano', 'micro']);
+
+/* 打开编辑器：
+   - 终端型编辑器：在独立终端窗口打开（不占用当前终端，dev 日志不受干扰）
+   - GUI 编辑器（code）：直接启动 */
 function openEditor(file) {
   const ed = resolveEditor();
   const name = file.split('/').pop();
@@ -142,8 +167,27 @@ function openEditor(file) {
     dim(`  · 未找到可用编辑器，请手动打开：content/posts/${name}`);
     return;
   }
-  const [bin, ...args] = ed.cmd.split(/\s+/);
-  const r = spawnSync(bin, [...args, file], { stdio: 'inherit' });
+  const bin = ed.cmd.split(/\s+/)[0];
+  const isTerm = TERM_EDITORS.has(bin);
+
+  if (isTerm) {
+    const term = detectTerminal();
+    if (!term) {
+      dim(`  · 未找到终端模拟器，回退为当前终端打开 ${ed.cmd}（dev 日志可能混入画面）`);
+    } else {
+      const [tbin, ...targs] = term;
+      const child = spawn(
+        tbin,
+        [...targs, 'sh', '-c', `cd "${ROOT}" && exec ${ed.cmd} "${file}"`],
+        { detached: true, stdio: 'ignore' }
+      );
+      child.unref();
+      say(`  · 已在新的终端窗口用 ${ed.cmd} 打开 ${name}，dev 日志保持在当前终端`);
+      return;
+    }
+  }
+
+  const r = spawnSync(bin, [...ed.cmd.split(/\s+/).slice(1), file], { stdio: 'inherit' });
   if (r.error) {
     dim(`  · 编辑器启动失败（${bin}），请手动打开：content/posts/${name}`);
   } else {
@@ -397,7 +441,8 @@ async function main() {
   const editor = resolveEditor();
   let openNow = false;
   if (editor) {
-    dim(`  · 将使用 ${editor.cmd} 打开（来源 ${editor.source}）`);
+    const isTerm = TERM_EDITORS.has(editor.cmd.split(/\s+/)[0]);
+    dim(`  · 将使用 ${editor.cmd} 打开${isTerm ? '（将在新的终端窗口打开，dev 日志保持在本终端）' : ''}（来源 ${editor.source}）`);
     openNow = /^y/i.test(await ask('打开编辑器开始写作？（y/N）'));
   } else {
     dim('  · 未找到可用编辑器（$VISUAL/$EDITOR 均未设置）');
@@ -428,34 +473,11 @@ async function main() {
   say('');
   openBrowser(url);
 
-  /* 询问同意后再打开编辑器，直接开始写作 */
+  /* 询问同意后再打开编辑器（终端编辑器在新窗口打开，GUI 编辑器直接启动） */
   if (openNow) {
     openEditor(path.join(PATHS.posts, `${state.slug}.md`));
   } else {
     dim(`  · 未打开编辑器，可直接编辑：content/posts/${state.slug}.md`);
-  }
-
-  /* 回显 dev 服务器最近日志（每次运行都显示，日志由 dev.js 持续写入文件） */
-  showDevTail();
-}
-
-/* 展示 dev 服务器最近日志的尾部（构建结果 / 报错），完整日志在临时文件 */
-function showDevTail() {
-  const f = path.join(os.tmpdir(), 'youth-dev.log');
-  try {
-    const lines = fs
-      .readFileSync(f, 'utf8')
-      .trim()
-      .split('\n')
-      .filter((l) => l.trim());
-    const tail = lines.slice(-6);
-    if (!tail.length) return;
-    say('');
-    dim('  · 开发服务器最近日志：');
-    tail.forEach((l) => dim('    ' + l));
-    dim('  · 完整日志：/tmp/youth-dev.log（实时查看：tail -f /tmp/youth-dev.log）');
-  } catch (e) {
-    /* 无日志可忽略 */
   }
 }
 
