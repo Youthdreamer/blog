@@ -120,22 +120,26 @@ function hasBin(bin) {
   }
 }
 
-/* 自动打开编辑器：优先 $VISUAL/$EDITOR，缺省尝试常见编辑器。
-   同步等待：终端型编辑器（nvim/vim）占用当前终端，关闭后向导继续；
-   GUI 编辑器（code）会自行后台化快速返回 */
-function openEditor(file) {
-  let cmd = (process.env.VISUAL || process.env.EDITOR || '').trim();
-  if (!cmd) {
-    for (const c of ['code', 'nvim', 'vim', 'vi']) {
-      if (hasBin(c)) { cmd = c; break; }
-    }
+/* 解析要用的编辑器：返回 { cmd, source }；无可用编辑器返回 null */
+function resolveEditor() {
+  if (process.env.VISUAL) return { cmd: process.env.VISUAL.trim(), source: '$VISUAL' };
+  if (process.env.EDITOR) return { cmd: process.env.EDITOR.trim(), source: '$EDITOR' };
+  for (const c of ['code', 'nvim', 'vim', 'vi']) {
+    if (hasBin(c)) return { cmd: c, source: '自动检测' };
   }
+  return null;
+}
+
+/* 自动打开编辑器：同步等待，终端型编辑器（nvim/vim）占用当前终端，
+   关闭后向导继续；GUI 编辑器（code）会自行后台化快速返回 */
+function openEditor(file) {
+  const ed = resolveEditor();
   const name = file.split('/').pop();
-  if (!cmd) {
+  if (!ed) {
     dim(`  · 未找到可用编辑器，请手动打开：content/posts/${name}`);
     return;
   }
-  const [bin, ...args] = cmd.split(/\s+/);
+  const [bin, ...args] = ed.cmd.split(/\s+/);
   const r = spawnSync(bin, [...args, file], { stdio: 'inherit' });
   if (r.error) {
     dim(`  · 编辑器启动失败（${bin}），请手动打开：content/posts/${name}`);
@@ -386,8 +390,15 @@ async function main() {
   gold(`  ✓ 已创建 content/posts/${state.slug}.md`);
   dim(`  · 可选字段：updated / tags / summary / minutes / draft / pin / toc · 完整说明：pnpm run fields`);
 
-  /* 询问是否立即打开编辑器（默认不打开，避免侵入） */
-  const openNow = /^y/i.test(await ask('打开编辑器开始写作？（y/N）'));
+  /* 询问是否立即打开编辑器：先告知将使用哪个编辑器（默认不打开，避免侵入） */
+  const editor = resolveEditor();
+  let openNow = false;
+  if (editor) {
+    dim(`  · 将使用 ${editor.cmd} 打开（来源 ${editor.source}）`);
+    openNow = /^y/i.test(await ask('打开编辑器开始写作？（y/N）'));
+  } else {
+    dim('  · 未找到可用编辑器（$VISUAL/$EDITOR 均未设置）');
+  }
   rl.close();
 
   /* 启动 dev（若未在运行）并等待就绪；无论哪种情况都汇报 PID 与停止方式 */
