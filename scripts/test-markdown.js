@@ -40,6 +40,9 @@ eq('粗体 **粗体**', inline('**粗体**'), '<strong>粗体</strong>');
 eq('斜体 *斜体*', inline('*斜体*'), '<em>斜体</em>');
 eq('删除线 ~~删除线~~', inline('~~删除线~~'), '<del>删除线</del>');
 eq('行内代码 `code`', inline('`code`'), '<code>code</code>');
+eq('多反引号包裹含反引号内容 ``a`b``', inline('``a`b``'), '<code>a`b</code>');
+eq('三反引号包裹含双反引号内容 ``` ``code`` ```', inline('``` ``code`` ```'), '<code> ``code`` </code>');
+eq('代码内星号不被强调 `a*b`', inline('`a*b`'), '<code>a*b</code>');
 eq('外链 [a](https://x.com)',
   inline('[a](https://x.com)'),
   '<a href="https://x.com" target="_blank" rel="noopener">a</a>');
