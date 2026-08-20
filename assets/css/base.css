@@ -100,6 +100,9 @@ button:focus-visible {
   outline-offset: 3px;
 }
 
+/* 粗体：显式 700（字体已加载该字重），正文 300 细体下对比更清晰 */
+strong, b { font-weight: 700; }
+
 img { max-width: 100%; }
 
 /* ---------- 排版工具 ---------- */
