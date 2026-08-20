@@ -9,6 +9,7 @@
     "dev": "node dev.js",
     "new": "node new.js",
     "fields": "node new.js --fields",
+    "test": "node scripts/test-markdown.js",
     "stop": "node stop.js"
   }
 }
