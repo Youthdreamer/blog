@@ -353,7 +353,9 @@
 
 .article .content p { margin: 0 0 1.7em; text-align: justify; }
 
-.article .content p:first-child::first-letter {
+/* 首字下沉仅用于文章正文首段（.content 的直接第一个 p），
+   不误伤列表项/引用等容器内的 <p> */
+.article .content > p:first-child::first-letter {
   font-family: var(--serif);
   font-style: italic;
   font-size: 2.7em;
@@ -361,6 +363,12 @@
   float: left;
   padding: .08em .14em 0 0;
   color: var(--accent);
+}
+
+/* 列表项内的段落：收紧间距，避免继承正文 1.7em 大间距 */
+.article .content li p {
+  margin: .2em 0 .5em;
+  text-align: left;
 }
 
 .article h2 {

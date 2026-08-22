@@ -149,6 +149,14 @@ block('子列表后接父项内容', '- 甲\n  - 子\n  继续\n',
   '<ul>\n  <li>甲<ul>\n  <li>子</li>\n</ul>\n继续</li>\n</ul>\n');
 block('列表后空行再接段落', '- a\n\n段落\n',
   '<ul>\n  <li>a</li>\n</ul>\n<p>段落</p>\n');
+block('列表项内表格（缩进）', '1. 甲\n\n   | a | b |\n   | --- | --- |\n   | 1 | 2 |\n\n2. 乙\n',
+  '<ol>\n  <li><p>甲</p>\n<div class="table-wrap">\n<table>\n  <thead>\n      <th>a</th>\n      <th>b</th>\n  </thead>\n  <tbody>\n      <tr>\n        <td>1</td>\n        <td>2</td>\n      </tr>\n  </tbody>\n</table>\n</div></li>\n  <li><p>乙</p></li>\n</ol>\n');
+block('列表项内引用', '- 甲\n\n  > 引用内容\n',
+  '<ul>\n  <li><p>甲</p>\n<blockquote>\n<p>引用内容</p>\n</blockquote></li>\n</ul>\n');
+block('列表项内代码块', '- 甲\n\n  ```js\n  const x = 1;\n  ```\n',
+  '<ul>\n  <li><p>甲</p>\n<pre><code class="lang-js">const x = 1;</code></pre></li>\n</ul>\n');
+block('列表项内多块与段落', '1. 甲\n\n   第一段\n\n   | x |\n   | --- |\n   | 1 |\n\n   第二段\n',
+  '<ol>\n  <li><p>甲</p>\n<p>第一段</p>\n<div class="table-wrap">\n<table>\n  <thead>\n      <th>x</th>\n  </thead>\n  <tbody>\n      <tr>\n        <td>1</td>\n      </tr>\n  </tbody>\n</table>\n</div>\n<p>第二段</p></li>\n</ol>\n');
 block('引用含粗体', '> **引用**\n',
   '<blockquote>\n<p><strong>引用</strong></p>\n</blockquote>\n');
 block('围栏代码块带语言', '```js\nconst a = 1;\n```\n',
