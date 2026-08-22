@@ -123,6 +123,32 @@ block('有序列表', '1. 甲\n2. 乙\n',
   '<ol>\n  <li>甲</li>\n  <li>乙</li>\n</ol>\n');
 block('列表项含粗体', '- **会话**\n',
   '<ul>\n  <li><strong>会话</strong></li>\n</ul>\n');
+block('有序列表 start 非 1', '3. 三\n4. 四\n',
+  '<ol start="3">\n  <li>三</li>\n  <li>四</li>\n</ol>\n');
+block('有序列表 start 为 1 不加属性', '1. 一\n2. 二\n',
+  '<ol>\n  <li>一</li>\n  <li>二</li>\n</ol>\n');
+block('无序列表嵌套', '- 甲\n  - 乙\n',
+  '<ul>\n  <li>甲<ul>\n  <li>乙</li>\n</ul>\n</li>\n</ul>\n');
+block('有序列表嵌套', '1. 甲\n   1. 乙\n',
+  '<ol>\n  <li>甲<ol>\n  <li>乙</li>\n</ol>\n</li>\n</ol>\n');
+block('三层嵌套', '- a\n  - b\n    - c\n',
+  '<ul>\n  <li>a<ul>\n  <li>b<ul>\n  <li>c</li>\n</ul>\n</li>\n</ul>\n</li>\n</ul>\n');
+block('混合类型同缩进嵌套', '- a\n1. b\n',
+  '<ul>\n  <li>a<ol>\n  <li>b</li>\n</ol>\n</li>\n</ul>\n');
+block('嵌套列表 start 继承', '3. 甲\n  4. 乙\n',
+  '<ol start="3">\n  <li>甲<ol start="4">\n  <li>乙</li>\n</ol>\n</li>\n</ol>\n');
+block('多行列表项（收集后续缩进行）', '- 第一行\n  第二行\n',
+  '<ul>\n  <li>第一行\n第二行</li>\n</ul>\n');
+block('loose 列表（项间空行）', '- a\n\n- b\n',
+  '<ul>\n  <li><p>a</p></li>\n  <li><p>b</p></li>\n</ul>\n');
+block('loose 项内多段', '- a\n\n  续行\n',
+  '<ul>\n  <li><p>a</p>\n<p>续行</p></li>\n</ul>\n');
+block('4 空格缩进不算列表', '    1. x\n',
+  '<p>    1. x</p>\n');
+block('子列表后接父项内容', '- 甲\n  - 子\n  继续\n',
+  '<ul>\n  <li>甲<ul>\n  <li>子</li>\n</ul>\n继续</li>\n</ul>\n');
+block('列表后空行再接段落', '- a\n\n段落\n',
+  '<ul>\n  <li>a</li>\n</ul>\n<p>段落</p>\n');
 block('引用含粗体', '> **引用**\n',
   '<blockquote>\n<p><strong>引用</strong></p>\n</blockquote>\n');
 block('围栏代码块带语言', '```js\nconst a = 1;\n```\n',
