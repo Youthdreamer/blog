@@ -86,8 +86,11 @@
     var bar = document.createElement('div');
     bar.className = 'vp-bar';
     bar.innerHTML =
-      '<button class="vp-play" type="button" aria-label="播放/暂停">▶</button>' +
-      '<div class="vp-track"><div class="vp-fill"></div><div class="vp-knob"></div></div>' +
+      '<button class="vp-play" type="button" aria-label="播放/暂停">' +
+        '<svg class="vp-play-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>' +
+        '<svg class="vp-pause-icon" viewBox="0 0 24 24" aria-hidden="true" style="display:none"><path d="M7 5h4v14H7zM13 5h4v14h-4z" fill="currentColor"/></svg>' +
+      '</button>' +
+      '<div class="vp-track"><div class="vp-trackline"><div class="vp-fill"></div><div class="vp-knob"></div></div></div>' +
       '<span class="vp-time">00:00 / 00:00</span>' +
       '<div class="vp-volwrap">' +
         '<button class="vp-vol" type="button" aria-label="音量">' +
@@ -98,14 +101,19 @@
           '<div class="vp-volslider"><div class="vp-volfill"></div></div>' +
         '</div>' +
       '</div>' +
-      '<button class="vp-full" type="button" aria-label="全屏">⛶</button>';
+      '<button class="vp-full" type="button" aria-label="全屏">' +
+        '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>' +
+      '</button>';
     wrap.appendChild(bar);
 
     var play = bar.querySelector('.vp-play');
+    var playIcon = bar.querySelector('.vp-play-icon');
+    var pauseIcon = bar.querySelector('.vp-pause-icon');
     var fill = bar.querySelector('.vp-fill');
     var knob = bar.querySelector('.vp-knob');
     var timeEl = bar.querySelector('.vp-time');
     var track = bar.querySelector('.vp-track');
+    var trackline = bar.querySelector('.vp-trackline');
     var volOn = bar.querySelector('.vp-vol-on');
     var volOff = bar.querySelector('.vp-vol-off');
     var volPop = bar.querySelector('.vp-volpop');
@@ -123,7 +131,9 @@
       fill.style.width = (p * 100) + '%';
       knob.style.left = (p * 100) + '%';
       timeEl.textContent = fmt(video.currentTime) + ' / ' + fmt(video.duration);
-      play.textContent = video.paused ? '▶' : '❚❚';
+      var paused = video.paused;
+      playIcon.style.display = paused ? 'block' : 'none';
+      pauseIcon.style.display = paused ? 'none' : 'block';
     };
     video.addEventListener('timeupdate', update);
     video.addEventListener('loadedmetadata', update);
@@ -139,11 +149,19 @@
       if (video.paused) video.play();
       else video.pause();
     });
-    /* 点击进度条跳转 */
-    track.addEventListener('click', function (e) {
+    /* 进度条：点击跳转 + 拖动 */
+    var seek = function (e) {
       if (!video.duration) return;
-      var r = track.getBoundingClientRect();
+      var r = trackline.getBoundingClientRect();
       video.currentTime = ((e.clientX - r.left) / r.width) * video.duration;
+    };
+    track.addEventListener('click', seek);
+    track.addEventListener('pointerdown', function (e) {
+      seek(e);
+      track.setPointerCapture(e.pointerId);
+    });
+    track.addEventListener('pointermove', function (e) {
+      if (e.buttons === 1) seek(e);
     });
 
     /* 音量：图标点击静音/取消；悬停弹出竖向滑条（点击/拖动调节） */
