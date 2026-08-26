@@ -92,9 +92,11 @@
       '<div class="vp-volwrap">' +
         '<button class="vp-vol" type="button" aria-label="音量">' +
           '<svg class="vp-vol-on" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path d="M16 8.5a5 5 0 0 1 0 7" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M18.5 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>' +
-          '<svg class="vp-vol-off" viewBox="0 0 24 24" aria-hidden="true" hidden><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path d="M16 9l6 6M22 9l-6 6" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>' +
+          '<svg class="vp-vol-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path d="M16 9l6 6M22 9l-6 6" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>' +
         '</button>' +
-        '<div class="vp-volslider"><div class="vp-volfill"></div></div>' +
+        '<div class="vp-volpop">' +
+          '<div class="vp-volslider"><div class="vp-volfill"></div></div>' +
+        '</div>' +
       '</div>' +
       '<button class="vp-full" type="button" aria-label="全屏">⛶</button>';
     wrap.appendChild(bar);
@@ -106,6 +108,7 @@
     var track = bar.querySelector('.vp-track');
     var volOn = bar.querySelector('.vp-vol-on');
     var volOff = bar.querySelector('.vp-vol-off');
+    var volPop = bar.querySelector('.vp-volpop');
     var volSlider = bar.querySelector('.vp-volslider');
     var volFill = bar.querySelector('.vp-volfill');
 
@@ -146,23 +149,24 @@
     /* 音量：图标点击静音/取消；悬停弹出竖向滑条（点击/拖动调节） */
     var renderVol = function () {
       var muted = video.muted || video.volume === 0;
-      volOn.hidden = muted;
-      volOff.hidden = !muted;
+      volOn.style.display = muted ? 'none' : 'block';
+      volOff.style.display = muted ? 'block' : 'none';
       volFill.style.height = (video.muted ? 0 : video.volume * 100) + '%';
     };
     var setVolFromEvent = function (e) {
       var r = volSlider.getBoundingClientRect();
-      var v = 1 - (e.clientY - r.top) / r.height;
+      var v = (r.bottom - e.clientY) / r.height;
       video.volume = Math.max(0, Math.min(1, v));
       video.muted = video.volume === 0;
       renderVol();
     };
-    volSlider.addEventListener('click', setVolFromEvent);
-    volSlider.addEventListener('pointerdown', function (e) {
+    /* 事件挂在弹出层上：加宽了命中区与桥接空隙，拖动不易脱手 */
+    volPop.addEventListener('click', setVolFromEvent);
+    volPop.addEventListener('pointerdown', function (e) {
       setVolFromEvent(e);
-      volSlider.setPointerCapture(e.pointerId);
+      volPop.setPointerCapture(e.pointerId);
     });
-    volSlider.addEventListener('pointermove', function (e) {
+    volPop.addEventListener('pointermove', function (e) {
       if (e.buttons === 1) setVolFromEvent(e);
     });
     bar.querySelector('.vp-vol').addEventListener('click', function () {
@@ -171,6 +175,7 @@
     });
     video.addEventListener('volumechange', renderVol);
     video.addEventListener('loadedmetadata', renderVol);
+    renderVol();
 
     bar.querySelector('.vp-full').addEventListener('click', function () {
       if (document.fullscreenElement) document.exitFullscreen();
