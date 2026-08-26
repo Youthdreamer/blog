@@ -542,6 +542,101 @@
 .article .md-figure video {
   margin: 0 auto;
 }
+
+/* 自定义播放器：深底 + 金色发丝控件，贴合站点调性 */
+.video-player {
+  position: relative;
+  margin: 2.4em auto;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  overflow: hidden;
+  background: #000;
+}
+.md-figure .video-player { margin: 0; }
+.video-player video {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin: 0;
+  border: none;
+  border-radius: 0;
+}
+.video-player:fullscreen {
+  border: none;
+  border-radius: 0;
+}
+.vp-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: .8rem;
+  padding: .8rem 1rem;
+  background: linear-gradient(180deg, transparent, rgba(0, 0, 0, .74));
+  opacity: 0;
+  transition: opacity .45s var(--ease);
+}
+.vp-bar.show { opacity: 1; }
+.vp-play,
+.vp-full {
+  flex: 0 0 auto;
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(185, 163, 124, .45);
+  border-radius: 50%;
+  background: rgba(18, 16, 14, .6);
+  color: var(--accent);
+  font-size: .68rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: border-color .3s, color .3s, background .3s;
+}
+.vp-play:hover,
+.vp-full:hover {
+  border-color: var(--accent);
+  color: var(--accent-br);
+  background: rgba(185, 163, 124, .14);
+}
+.vp-track {
+  flex: 1 1 auto;
+  position: relative;
+  height: 3px;
+  border-radius: 3px;
+  background: rgba(232, 226, 214, .18);
+  cursor: pointer;
+}
+.vp-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--accent-dim), var(--accent-br));
+}
+.vp-knob {
+  position: absolute;
+  top: 50%;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--accent-br);
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 6px rgba(185, 163, 124, .5);
+}
+.vp-time {
+  flex: 0 0 auto;
+  font-family: var(--mono);
+  font-size: .62rem;
+  letter-spacing: .08em;
+  color: rgba(232, 226, 214, .78);
+  white-space: nowrap;
+}
 .md-figure figcaption {
   margin-top: .9em;
   font-family: var(--mono);
