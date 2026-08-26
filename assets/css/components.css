@@ -528,6 +528,20 @@
 .article .content .md-figure img {
   margin: 0 auto;
 }
+
+/* 视频（markdown 识别 mp4/webm 后缀自动渲染） */
+.article video {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 2.4em auto;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: #000;
+}
+.article .md-figure video {
+  margin: 0 auto;
+}
 .md-figure figcaption {
   margin-top: .9em;
   font-family: var(--mono);
