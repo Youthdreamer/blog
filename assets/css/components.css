@@ -580,7 +580,8 @@
 }
 .vp-bar.show { opacity: 1; }
 .vp-play,
-.vp-full {
+.vp-full,
+.vp-vol {
   flex: 0 0 auto;
   width: 2rem;
   height: 2rem;
@@ -597,10 +598,46 @@
   transition: border-color .3s, color .3s, background .3s;
 }
 .vp-play:hover,
-.vp-full:hover {
+.vp-full:hover,
+.vp-vol:hover {
   border-color: var(--accent);
   color: var(--accent-br);
   background: rgba(185, 163, 124, .14);
+}
+.vp-vol svg {
+  width: 60%;
+  height: 60%;
+}
+.vp-volwrap {
+  position: relative;
+  flex: 0 0 auto;
+}
+/* 音量滑条：悬停音量图标时在按钮上方弹出（竖向，金色填充） */
+.vp-volslider {
+  position: absolute;
+  bottom: calc(100% + .6rem);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 3px;
+  height: 56px;
+  border-radius: 3px;
+  background: rgba(232, 226, 214, .18);
+  cursor: pointer;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity .3s var(--ease), visibility .3s;
+}
+.vp-volwrap:hover .vp-volslider {
+  opacity: 1;
+  visibility: visible;
+}
+.vp-volfill {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 3px;
+  background: linear-gradient(180deg, var(--accent-dim), var(--accent-br));
 }
 .vp-track {
   flex: 1 1 auto;

@@ -89,6 +89,13 @@
       '<button class="vp-play" type="button" aria-label="播放/暂停">▶</button>' +
       '<div class="vp-track"><div class="vp-fill"></div><div class="vp-knob"></div></div>' +
       '<span class="vp-time">00:00 / 00:00</span>' +
+      '<div class="vp-volwrap">' +
+        '<button class="vp-vol" type="button" aria-label="音量">' +
+          '<svg class="vp-vol-on" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path d="M16 8.5a5 5 0 0 1 0 7" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M18.5 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>' +
+          '<svg class="vp-vol-off" viewBox="0 0 24 24" aria-hidden="true" hidden><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path d="M16 9l6 6M22 9l-6 6" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>' +
+        '</button>' +
+        '<div class="vp-volslider"><div class="vp-volfill"></div></div>' +
+      '</div>' +
       '<button class="vp-full" type="button" aria-label="全屏">⛶</button>';
     wrap.appendChild(bar);
 
@@ -97,6 +104,10 @@
     var knob = bar.querySelector('.vp-knob');
     var timeEl = bar.querySelector('.vp-time');
     var track = bar.querySelector('.vp-track');
+    var volOn = bar.querySelector('.vp-vol-on');
+    var volOff = bar.querySelector('.vp-vol-off');
+    var volSlider = bar.querySelector('.vp-volslider');
+    var volFill = bar.querySelector('.vp-volfill');
 
     var fmt = function (s) {
       if (!isFinite(s)) return '00:00';
@@ -131,6 +142,36 @@
       var r = track.getBoundingClientRect();
       video.currentTime = ((e.clientX - r.left) / r.width) * video.duration;
     });
+
+    /* 音量：图标点击静音/取消；悬停弹出竖向滑条（点击/拖动调节） */
+    var renderVol = function () {
+      var muted = video.muted || video.volume === 0;
+      volOn.hidden = muted;
+      volOff.hidden = !muted;
+      volFill.style.height = (video.muted ? 0 : video.volume * 100) + '%';
+    };
+    var setVolFromEvent = function (e) {
+      var r = volSlider.getBoundingClientRect();
+      var v = 1 - (e.clientY - r.top) / r.height;
+      video.volume = Math.max(0, Math.min(1, v));
+      video.muted = video.volume === 0;
+      renderVol();
+    };
+    volSlider.addEventListener('click', setVolFromEvent);
+    volSlider.addEventListener('pointerdown', function (e) {
+      setVolFromEvent(e);
+      volSlider.setPointerCapture(e.pointerId);
+    });
+    volSlider.addEventListener('pointermove', function (e) {
+      if (e.buttons === 1) setVolFromEvent(e);
+    });
+    bar.querySelector('.vp-vol').addEventListener('click', function () {
+      video.muted = !video.muted;
+      renderVol();
+    });
+    video.addEventListener('volumechange', renderVol);
+    video.addEventListener('loadedmetadata', renderVol);
+
     bar.querySelector('.vp-full').addEventListener('click', function () {
       if (document.fullscreenElement) document.exitFullscreen();
       else if (wrap.requestFullscreen) wrap.requestFullscreen();
