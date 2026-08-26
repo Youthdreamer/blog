@@ -127,6 +127,7 @@
       return (m < 10 ? '0' + m : m) + ':' + (sec < 10 ? '0' + sec : sec);
     };
     var update = function () {
+      if (dragging) return; // 拖动中：UI 由鼠标控制，避免与播放进度打架
       var p = video.duration ? video.currentTime / video.duration : 0;
       fill.style.width = (p * 100) + '%';
       knob.style.left = (p * 100) + '%';
@@ -149,19 +150,36 @@
       if (video.paused) video.play();
       else video.pause();
     });
-    /* 进度条：点击跳转 + 拖动 */
-    var seek = function (e) {
+    /* 进度条：拖动时 UI 跟随鼠标（不碰视频），松手提交跳转 */
+    var dragging = false;
+    var preview = function (e) {
       if (!video.duration) return;
       var r = trackline.getBoundingClientRect();
-      video.currentTime = ((e.clientX - r.left) / r.width) * video.duration;
+      var p = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
+      fill.style.width = (p * 100) + '%';
+      knob.style.left = (p * 100) + '%';
     };
-    track.addEventListener('click', seek);
+    var commitSeek = function (e) {
+      if (!video.duration) return;
+      var r = trackline.getBoundingClientRect();
+      var p = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
+      video.currentTime = p * video.duration;
+    };
     track.addEventListener('pointerdown', function (e) {
-      seek(e);
+      dragging = true;
       track.setPointerCapture(e.pointerId);
+      preview(e);
     });
     track.addEventListener('pointermove', function (e) {
-      if (e.buttons === 1) seek(e);
+      if (dragging) preview(e);
+    });
+    track.addEventListener('pointerup', function (e) {
+      if (!dragging) return;
+      dragging = false;
+      commitSeek(e);
+    });
+    track.addEventListener('pointercancel', function () {
+      dragging = false;
     });
 
     /* 音量：图标点击静音/取消；悬停弹出竖向滑条（点击/拖动调节） */
