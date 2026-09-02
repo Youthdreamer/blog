@@ -1,7 +1,7 @@
 ---
 title: Neovim教程入门——介绍
 date: 2026-08-26
-tags: [neovim, 入门, 教程]
+tags: [neovim, 入门, 教程, 开发工具]
 slug: neovim-guide
 summary: neovim的入门教程，neovim的简单介绍与基本操作
 ---
