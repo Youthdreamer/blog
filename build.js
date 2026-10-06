@@ -7,6 +7,6 @@
    实现拆分在 lib/ 目录下（config / utils / markdown / content / templates / build）
    ============================================================ */
 
-'use strict';
+"use strict";
 
-require('./lib/build').build();
+require("./lib/build").build();

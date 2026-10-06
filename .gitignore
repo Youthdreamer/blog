@@ -5,7 +5,7 @@ site/
 node_modules/
 
 # Nix / direnv
-result/
+result
 result-*
 .direnv/
 
