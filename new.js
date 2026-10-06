@@ -201,6 +201,8 @@ const state = {
   date: today,
   updated: '',
   tags: [],
+  series: '',
+  seriesOrder: '',
   summary: '',
   minutes: '',
   draft: false,
@@ -208,13 +210,15 @@ const state = {
   toc: false,
 };
 
-const FIELD_ORDER = ['title', 'slug', 'date', 'updated', 'tags', 'summary', 'minutes', 'draft', 'pin', 'toc'];
+const FIELD_ORDER = ['title', 'slug', 'date', 'updated', 'tags', 'series', 'seriesOrder', 'summary', 'minutes', 'draft', 'pin', 'toc'];
 const FIELD_LABEL = {
   title: '标题',
   slug: '文件名',
   date: '日期',
   updated: '更新日期',
   tags: '标签',
+  series: '合集',
+  seriesOrder: '合集序号',
   summary: '摘要',
   minutes: '阅读时长',
   draft: '草稿',
@@ -286,6 +290,24 @@ async function askField(key) {
       ? raw.split(/[\s,，、]+/).map((s) => s.trim()).filter(Boolean)
       : [];
     return;
+  }
+  if (key === 'series') {
+    dim('  · 合集：同一部教程系列填同一个名字，合集页会按顺序把它们串成一条线');
+    state.series = await ask(`${num}合集（可空）`);
+    return;
+  }
+  if (key === 'seriesOrder') {
+    if (!state.series) {
+      state.seriesOrder = '';
+      dim('  · 未填合集，跳过');
+      return;
+    }
+    while (true) {
+      const v = await ask(`${num}合集序号（第几篇，可空=按日期）`);
+      if (v === '') { state.seriesOrder = ''; return; }
+      if (/^\d+$/.test(v) && Number(v) > 0) { state.seriesOrder = v; return; }
+      dim('  ✗ 请输入正整数，或留空按日期自动排序');
+    }
   }
   if (key === 'summary') {
     state.summary = await ask(`${num}摘要（一句话，可空）`);
@@ -363,6 +385,8 @@ function printFields() {
   say(`  ${C.gold}可选（不写即缺省）${C.reset}`);
   say('    updated  最后更新日期（YYYY-MM-DD），文章页显示"更新于"');
   say('    tags     标签，如 [NixOS, 配置]（英文逗号分隔）');
+  say('    series   合集名，同一部教程系列填同一个名字');
+  say('    series_order  第几篇（正整数），缺省按发布日期升序排');
   say('    summary  一句话摘要，显示在文章列表里');
   say('    minutes  手动阅读时长（正整数），缺省自动按字数估算');
   say('    draft    true=草稿不发布');
@@ -376,6 +400,8 @@ function printFields() {
   say('    slug: my-post');
   say('    updated: 2026-08-20');
   say('    tags: [NixOS, 配置]');
+  say('    series: Neovim 入门');
+  say('    series_order: 2');
   say('    summary: 一句话摘要');
   say('    minutes: 8');
   say('    draft: true');
@@ -422,6 +448,8 @@ async function main() {
   const lines = ['---', `title: ${state.title}`, `date: ${state.date}`];
   if (state.updated) lines.push(`updated: ${state.updated}`);
   if (state.tags.length) lines.push(`tags: [${state.tags.join(', ')}]`);
+  if (state.series) lines.push(`series: ${state.series}`);
+  if (state.series && state.seriesOrder) lines.push(`series_order: ${state.seriesOrder}`);
   lines.push(`slug: ${state.slug}`);
   if (state.summary) lines.push(`summary: ${state.summary}`);
   if (state.minutes) lines.push(`minutes: ${state.minutes}`);
@@ -433,7 +461,7 @@ async function main() {
   fs.writeFileSync(path.join(PATHS.posts, `${state.slug}.md`), lines.join('\n'));
 
   gold(`  ✓ 已创建 content/posts/${state.slug}.md`);
-  dim(`  · 可选字段：updated / tags / summary / minutes / draft / pin / toc · 完整说明：pnpm run fields`);
+  dim(`  · 可选字段：updated / tags / series / series_order / summary / minutes / draft / pin / toc · 完整说明：pnpm run fields`);
 
   /* 询问是否立即打开编辑器：先告知将使用哪个编辑器（默认不打开，避免侵入） */
   const editor = resolveEditor();

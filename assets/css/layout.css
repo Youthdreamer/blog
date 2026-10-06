@@ -85,6 +85,70 @@
   justify-content: center;
 }
 
+/* 菱格底纹：整屏铺一层圆角菱形网格。
+   菱形与 #to-top、加载动画同源——高宽比 1.212，圆角占边长 20.1%。
+   横向铺满整个视口（hero 本体只有 760px 宽），靠 left:50% + 负半宽拉出去 */
+.hero::before,
+.lattice {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 100vw;
+  margin-left: -50vw;
+  z-index: -1;
+  pointer-events: none;
+}
+.hero::before {
+  content: "";
+  background-size: 66px 80px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='66' height='80' viewBox='0 0 66 80'%3E%3Cg fill='none' stroke='rgba(232,226,214,0.05)' stroke-width='1'%3E%3Cpath d='M39.633 8.04L59.367 31.96Q66 40 59.367 48.04L39.633 71.96Q33 80 26.367 71.96L6.633 48.04Q0 40 6.633 31.96L26.367 8.04Q33 0 39.633 8.04Z'/%3E%3Cpath d='M-26.367 -71.96L-6.633 -48.04Q0 -40 -6.633 -31.96L-26.367 -8.04Q-33 0 -39.633 -8.04L-59.367 -31.96Q-66 -40 -59.367 -48.04L-39.633 -71.96Q-33 -80 -26.367 -71.96Z'/%3E%3Cpath d='M105.633 -71.96L125.367 -48.04Q132 -40 125.367 -31.96L105.633 -8.04Q99 0 92.367 -8.04L72.633 -31.96Q66 -40 72.633 -48.04L92.367 -71.96Q99 -80 105.633 -71.96Z'/%3E%3Cpath d='M-26.367 88.04L-6.633 111.96Q0 120 -6.633 128.04L-26.367 151.96Q-33 160 -39.633 151.96L-59.367 128.04Q-66 120 -59.367 111.96L-39.633 88.04Q-33 80 -26.367 88.04Z'/%3E%3Cpath d='M105.633 88.04L125.367 111.96Q132 120 125.367 128.04L105.633 151.96Q99 160 92.367 151.96L72.633 128.04Q66 120 72.633 111.96L92.367 88.04Q99 80 105.633 88.04Z'/%3E%3C/g%3E%3C/svg%3E");
+  /* 向四周化开：网格淡出，而不是被切断 */
+  -webkit-mask-image: radial-gradient(115% 95% at 50% 46%, #000 30%, transparent 78%);
+  mask-image: radial-gradient(115% 95% at 50% 46%, #000 30%, transparent 78%);
+}
+
+/* 底纹的「动」：像水波一样，一圈一圈从中心向外荡开。
+   菱形按到中心的距离错峰，于是相位相同的连成同心圈；
+   每个周期里留出一段静水，圈与圈之间才分得开。
+   节点由 effects.js 按视口尺寸生成（静态站构建期不知道窗口多大），
+   静态网格那层始终不动 */
+.lattice { overflow: hidden; }
+
+.lattice i {
+  position: absolute;
+  width: 66px;   /* 与上面 background-size 对齐 */
+  height: 80px;
+  opacity: 0;
+  animation: dg-ripple var(--dur, 5.2s) ease-out
+             calc(-1 * var(--dgd, 0s)) infinite;
+}
+/* 菱形本体：正方形旋转 45° 再纵向拉伸 1.212（圆角半径 = 20% 边长） */
+.lattice i::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 46.67px;  /* 66 / √2 */
+  height: 46.67px;
+  margin: -23.34px 0 0 -23.34px;
+  border: 1px solid var(--accent);
+  border-radius: 20%;
+  transform: scaleY(1.212) rotate(45deg);
+}
+
+/* 一圈涟漪从这枚菱形上过境：
+   正好贴合网格线起步（scale 1 时与底纹重合，看不出来），
+   被波峰推着向外涨、涨到最亮，过去之后褪尽。
+   只用掉前 30% 的行程，后面留给两圈之间的静水——
+   圈距（周期 × 波速）因此必须比菱形间距大得多，否则圈会糊成一片渐变 */
+@keyframes dg-ripple {
+  0%   { opacity: 0; transform: scale(1); }
+  13%  { opacity: var(--peak, .42); }
+  30%  { opacity: 0; transform: scale(1.35); }
+  100% { opacity: 0; transform: scale(1); }
+}
+
 .hero .kicker { margin-bottom: 2.4rem; }
 
 .hero h1 {

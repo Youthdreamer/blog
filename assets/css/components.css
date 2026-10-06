@@ -187,6 +187,90 @@
   color: var(--accent-dim);
 }
 
+/* 合集索引（series.html）——卡片式：淡底 + 发丝边，悬停微浮、边转金。
+   网格自适应，窄屏一列、宽屏两列；简介与篇目各限两行，长标题不撑破卡片 */
+.series-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 21rem), 1fr));
+  gap: 1.1rem;
+  max-width: 58rem;
+  margin: 1.2rem auto 0;
+  padding: 0;
+  list-style: none;
+}
+.series-card {
+  display: block;
+  height: 100%;
+  padding: 1.5rem 1.6rem 1.4rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  text-decoration: none;
+  color: inherit;
+  transition: transform .5s var(--ease), border-color .4s var(--ease), box-shadow .5s var(--ease);
+}
+.series-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(185, 163, 124, .45);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, .34);
+}
+.sc-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 0;
+}
+.sc-name {
+  font-family: var(--serif);
+  font-size: 1.18rem;
+  font-weight: 400;
+  letter-spacing: .02em;
+  color: var(--ink);
+  transition: color .35s var(--ease);
+}
+.series-card:hover .sc-name { color: var(--accent-br); }
+.sc-count {
+  flex: 0 0 auto;
+  font-family: var(--mono);
+  font-size: .6rem;
+  letter-spacing: .1em;
+  color: var(--accent-dim);
+}
+.sc-desc {
+  margin: .7rem 0 0;
+  font-size: .92rem;
+  line-height: 1.85;
+  color: var(--ink-2);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+/* 篇目：开头几篇的标题串成一串，像先把这条线摊开给你看一眼 */
+.sc-titles {
+  margin: 1rem 0 0;
+  padding-top: .9rem;
+  border-top: 1px solid var(--line);
+  font-size: .84rem;
+  line-height: 1.95;
+  color: var(--ink-3);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+/* 零合集时的空状态：导航里常驻「合集」，这页不能空着 */
+.series-empty {
+  margin: 2rem 0 0;
+  text-align: center;
+  font-family: var(--mono);
+  font-size: .68rem;
+  letter-spacing: .12em;
+  color: var(--ink-3);
+}
+.series-section { padding-top: 2.2rem; } /* 页头较矮，收紧与卡片之间的空隙（同 .tag-section） */
+
 /* 紧凑归档列表（标签页）——悬停：左缘金线描过 + 整行右移 + 标题转金，
    与首页卡片同一套悬停语言，明确指向当前文章 */
 .idx-list {
@@ -238,15 +322,37 @@
 .idx:hover .idx-title { color: var(--accent-br); }
 .idx:hover .idx-date { color: var(--accent-dim); }
 
-/* 文章页标签 */
-.article-tags {
+/* 合集页条目：序号 + 标题靠左、日期靠右。
+   只在 .series-posts 里改对齐，标签页的 .idx 分毫不动 */
+.series-posts .idx-title { margin-right: auto; text-align: left; }
+.idx-no {
+  flex: 0 0 auto;
+  min-width: 1.8em;
+  font-family: var(--mono);
+  font-size: .68rem;
+  color: var(--accent-dim);
+  transition: color .3s;
+}
+.idx:hover .idx-no { color: var(--accent); }
+
+/* 从文章页跳进合集：落在的那一行（URL 带 #p-<slug>）只用一条细金线提示——
+   左侧那条竖线常亮（与悬停同一条），底色、文字、焦点框一概不要。
+   上方留出余量，别让这一行贴着固定导航栏 */
+.series-posts .idx { scroll-margin-top: 6rem; }
+.series-posts .idx:target { outline: none; }
+.series-posts .idx:target::before { transform: scaleY(1); }
+
+/* 文章页标签与合集角标：同一套药丸，合集那枚更实一档——它指路，标签只是归类 */
+.article-tags,
+.article-series {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
   gap: .5rem;
   margin: 1.4rem 0 0;
 }
-.article-tags a {
+.article-tags a,
+.article-series a {
   font-family: var(--mono);
   font-size: .6rem;
   letter-spacing: .12em;
@@ -257,7 +363,9 @@
   padding: .25em .8em;
   transition: color .3s, border-color .3s;
 }
-.article-tags a:hover { color: var(--accent-br); border-color: rgba(185, 163, 124, .5); }
+.article-tags a:hover,
+.article-series a:hover { color: var(--accent-br); border-color: rgba(185, 163, 124, .5); }
+.article-series a { color: var(--accent); }
 
 /* ---------- 文章页 ---------- */
 
@@ -794,6 +902,31 @@
   transition: color .3s;
 }
 .pn:hover .pn-title { color: var(--accent-br); }
+
+/* 合集上/下篇（文章底部）：读完这篇，顺着同一条线继续走。
+   小标题一行指回整部合集（金线语言同角标），上/下篇沿用 .pn 那套 */
+.series-nav {
+  margin-top: 3rem;
+}
+.sn-head {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  margin: 0 0 1.1rem;
+  font-family: var(--mono);
+  font-size: .62rem;
+  letter-spacing: .3em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.sn-head::before { content: "◇"; color: var(--accent-dim); font-size: .5rem; }
+.sn-head a { color: var(--accent); text-decoration: none; transition: color .3s; }
+.sn-head a:hover { color: var(--accent-br); }
+.sn-links {
+  display: flex;
+  justify-content: space-between;
+  gap: 1.5rem;
+}
 
 /* 相关文章（文章底部，按共同标签推荐） */
 .related {

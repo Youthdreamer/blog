@@ -79,8 +79,62 @@
     });
   });
 
-  /* ④ 漂浮墨尘：Hero 背景里的微光粒子 */
   var hero = document.querySelector('.hero');
+
+  /* ⑥ 菱格底纹的涟漪：底纹本身是一层静态网格（layout.css .hero::before），
+     这里把其中一部分菱形拎出来做缩放。相位只取决于「到中心的距离」，
+     于是等距的菱形同时动，连成一圈一圈向外荡开的同心波纹 */
+  if (hero && !reduceMotion) {
+    var TILE_W = 66, TILE_H = 80; // 必须与 .hero::before 的 background-size 一致
+    var STEP_X = TILE_W * 2;      // 横向隔一枚取一枚：不然整屏一起动，看不出波纹
+    var STEP_Y = TILE_H;
+    var SPEED = 88;               // 波速（px/秒）：慢慢荡，一圈从中心到边上要十几秒
+    var CYCLE = 5.2;              // 与 CSS 里的 --dur 一致；周期 × 波速 ≈ 460px，
+                                  // 就是相邻两圈的间距——要远大于菱形间距（80/132px），
+                                  // 圈与圈之间的静水才留得出来。宁疏勿密，才静得下来
+
+    var layer = document.createElement('div');
+    layer.className = 'lattice';
+    layer.setAttribute('aria-hidden', 'true');
+
+    var fillLattice = function () {
+      while (layer.firstChild) layer.removeChild(layer.firstChild);
+      var vw = window.innerWidth;
+      var vh = hero.offsetHeight || window.innerHeight;
+      // 落石点：与底纹遮罩的焦点同一处，涟漪像是从那块地方荡开
+      var cx = vw / 2, cy = vh * 0.46;
+      var far = Math.sqrt(cx * cx + (vh - cy) * (vh - cy)) || 1; // 到最远一角
+      var frag = document.createDocumentFragment();
+      for (var y = 0; y < vh + TILE_H; y += STEP_Y) {
+        for (var x = 0; x < vw + TILE_W; x += STEP_X) {
+          var dx = x + TILE_W / 2 - cx, dy = y + TILE_H / 2 - cy;
+          var dist = Math.sqrt(dx * dx + dy * dy);
+          // 越远越弱：水波扩散本来就在耗散，也顺势和底纹的径向遮罩合上
+          var peak = 0.42 * (1 - 0.7 * Math.min(1, dist / far));
+          if (peak < 0.02) continue;
+          var cell = document.createElement('i');
+          cell.style.left = x + 'px';
+          cell.style.top = y + 'px';
+          cell.style.setProperty('--dgd', (dist / SPEED).toFixed(2) + 's');
+          cell.style.setProperty('--dur', CYCLE + 's');
+          cell.style.setProperty('--peak', peak.toFixed(3));
+          frag.appendChild(cell);
+        }
+      }
+      layer.appendChild(frag);
+    };
+
+    fillLattice();
+    hero.insertBefore(layer, hero.firstChild); // 在墨尘之下
+
+    var resizeTimer;
+    window.addEventListener('resize', function () {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(fillLattice, 250);
+    });
+  }
+
+  /* ④ 漂浮墨尘：Hero 背景里的微光粒子 */
   if (hero && !reduceMotion) {
     var N = 14;
     for (var i = 0; i < N; i++) {
