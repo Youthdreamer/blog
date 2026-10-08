@@ -75,7 +75,13 @@
       var chars = h1.querySelectorAll('.ch');
       chars.forEach(function (c) { c.style.animation = 'none'; });
       void h1.offsetWidth; // 强制重排，让动画重新播放
-      chars.forEach(function (c) { c.style.animation = ''; });
+      chars.forEach(function (c) {
+        c.style.animation = ''; // 先清空（这会连带清掉上一轮留下的行内 animation-delay）
+        // 再把节奏换回 55ms / +180ms：effects.css 给首页 h1 写的是开幕那一套
+        // （75ms / +0.8s），那是等遮幅板退位用的时间；点击重播时片子早开场了，
+        // 沿用就等于先空等 0.8s 才落第一笔。这两处数字要一起改
+        c.style.animationDelay = 'calc(var(--i, 0) * 55ms + 180ms)';
+      });
     });
   });
 

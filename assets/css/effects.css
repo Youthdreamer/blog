@@ -94,13 +94,17 @@
 
 /* ---------- 入场动画 ---------- */
 
-:where([data-reveal]) {
+/* 隐藏态挂在 html.js 上，这个类由 head() 里一行同步内联脚本加上（lib/shell.js）。
+   绕这一道是为了脚本不来时元素不能是隐形的；而「脚本不来」有两种——浏览器设置里
+   关掉 JS，与脚本被拦截器拦下——后者脚本标记仍是「开」，<noscript> 不生效，
+   用类名判定才两头都盖得住。类名在首帧前就位，不会闪一下 */
+:where(.js [data-reveal]) {
   opacity: 0;
   transform: translateY(20px);
   transition: opacity 1s var(--ease), transform 1s var(--ease);
   transition-delay: var(--rd, 0ms);
 }
-:where([data-reveal]).in { opacity: 1; transform: none; }
+:where(.js [data-reveal]).in { opacity: 1; transform: none; }
 
 /* ---------- 链接悬停预览卡片 ---------- */
 
@@ -210,6 +214,238 @@
   #toast { white-space: normal; max-width: 84vw; text-align: center; line-height: 1.8; }
 }
 
+/* ---------- 电影开幕（只在首页第 1 页，见 lib/views.js 的 hero） ---------- */
+
+/* 两条遮幅板从合拢处分开，让出宽银幕的一条缝，金线随之亮起；文字在缝里显影，
+   随后遮幅板退场，页面交还给读者。
+
+   写法上有一条原则：**隐藏态只写在 @keyframes 的起始帧里，绝不写进普通规则**。
+   动效偏好一开，下面那个块会把 animation 全部杀掉——没有起始帧可用，
+   元素就停在默认的可见状态。降级因此是自动的，不需要逐个补偿。
+
+   z-index 150 夹在两处既有层级之间，两边都是必须的：
+   要压过固定导航的 100（不然导航浮在黑边上，幻觉当场破裂），
+   又要低于 #loader 的 500（慢网速时黑场里转着菱形＝片子还在装，
+   盖住它就成了页面卡死），还要低于 body::after 噪点的 990
+   ——遮幅板自己吃到胶片颗粒，才成为胶片的一部分，而不是浮在画面外的一块黑 */
+.curtain {
+  --ct: 2.2s; /* 开幕总长：下面所有节拍都按这个数换算 */
+  position: fixed;
+  inset: 0;
+  z-index: 150;
+  pointer-events: none;
+}
+
+/* 各 55vh：55 + 55 > 100，合拢时必然盖满全屏，不受移动端地址栏高度影响。
+   落位后上板占 [-35.2vh, 19.8vh]、下板镜像，当中留出 60.4vh 的宽银幕缝 */
+.curtain-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 55vh;
+  background: var(--bg-deep);
+  animation: var(--ct) var(--ease) both;
+}
+.cb-top    { top: 0;    animation-name: ct-top; }
+.cb-bottom { bottom: 0; animation-name: ct-bottom; }
+
+/* 分段缓动：animation-timing-function 写在关键帧里，管的是这一帧**之后**那一段。
+   于是分开是缓出的（落位要稳），退场是缓入的（走要果断）——
+   从头到尾套一个 var(--ease) 做不出这个节奏 */
+@keyframes ct-top {
+  0%   { transform: translateY(0);    animation-timing-function: var(--ease); }
+  22%  { transform: translateY(-64%); animation-timing-function: linear; }
+  78%  { transform: translateY(-64%); animation-timing-function: cubic-bezier(.55, .06, .68, .19); }
+  100% { transform: translateY(-100%); }
+}
+@keyframes ct-bottom {
+  0%   { transform: translateY(0);   animation-timing-function: var(--ease); }
+  22%  { transform: translateY(64%); animation-timing-function: linear; }
+  78%  { transform: translateY(64%); animation-timing-function: cubic-bezier(.55, .06, .68, .19); }
+  100% { transform: translateY(100%); }
+}
+
+/* 签名：遮幅板内缘各压一条香槟金细线，两端透明、中间最亮。
+   看到的就不是「两块黑矩形盖在页面上」，而是一道被点亮的片门——光是从那条缝里出来的。
+   这两条线同时还是稿纸的格线：这站叫「一间写字的屋子」，标题旁竖排写着「以字为居」，
+   于是开幕同时是「片子开始」和「落笔」。全曲的力气就花在这一处，别处一律放轻 */
+.curtain-bar::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent-dim), transparent);
+  animation: var(--ct) var(--ease) both;
+  animation-name: ct-edge;
+}
+.cb-top::after    { bottom: 0; }
+.cb-bottom::after { top: 0; }
+
+/* 边的亮度跟着遮幅板走：合拢时没有缝也就没有边，落位时亮起，退场时熄灭 */
+@keyframes ct-edge {
+  0%, 14%  { opacity: 0; }
+  26%, 76% { opacity: .9; }
+  100%     { opacity: 0; }
+}
+
+/* 聚光：一束暖光从偏左下升起、扩散、往右上漂。只动 transform 与 opacity，走合成器。
+   不需要裁剪——它排在遮幅板之下（z-index -1 在这层里），缝外的部分自然被板子盖住，
+   只剩缝里那一片亮着。刻意不对称：居中的对称径向渐变正是一眼假的那种默认答案 */
+.curtain-beam {
+  position: absolute;
+  inset: -20%;
+  z-index: -1;
+  background: radial-gradient(46% 38% at 34% 68%,
+              rgba(185, 163, 124, .13), rgba(185, 163, 124, .05) 42%, transparent 72%);
+  opacity: 0;
+  animation: var(--ct) var(--ease) both;
+  animation-name: ct-beam;
+}
+@keyframes ct-beam {
+  0%,  16% { opacity: 0;   transform: translate(-6%, 12%) scale(.72); }
+  46%      { opacity: 1;   transform: translate(0, 0) scale(1); }
+  84%      { opacity: .55; transform: translate(5%, -6%) scale(1.1); }
+  100%     { opacity: 0;   transform: translate(7%, -9%) scale(1.16); }
+}
+
+/* —— 文字的入场 —— 一律只动 opacity，不带位移。
+   一是克制：力气已经花在片门上，别处该安静；
+   二是具体原因：.hero .scroll 自带 float 动画、且靠 transform: translateX(-50%) 居中，
+   任何动 transform 的入场都会把它的居中和浮动一起顶掉 */
+@keyframes ct-in {
+  from { opacity: 0; }
+}
+
+.hero .kicker,
+.hero .tagline,
+.hero .rule,
+.hero .hero-note {
+  animation: ct-in .6s var(--ease) both;
+}
+.hero .kicker    { animation-delay: .85s; }
+.hero .tagline   { animation-delay: 1.15s; }
+.hero .hero-note { animation-delay: 1.35s; }
+.hero .rule      { animation-delay: 1.55s; }
+
+/* 滚动箭头要和它在 layout.css 里原有的浮动并存，所以两个动画并列写。
+   它也排在最后淡入——1.65s 起时遮幅板已经在退场了，像是顺手露出来的 */
+.hero .scroll {
+  animation: ct-in .6s var(--ease) 1.65s both,
+             float 3s ease-in-out infinite;
+}
+
+/* 标题逐字显影：从暗处的 --ink-3 浮到本色，最后一个字是那句金色的句点。
+   拆字与 --i 序号由 effects.js 的 staggerChars 提供（标题可点击重播），
+   这里只把它换成开幕的节奏——原来的 55ms/+180ms 是给「页面已就绪」用的，太早。
+   点击重播时 effects.js 会把节奏换回 55ms/+180ms（行内 animation-delay）：
+   那时遮幅早散了，再等 0.8s 只是空等。改这里的数字，记得看那边一眼。
+   只写 from 的 color、不写 to：省略的一端取元素自己的计算值，
+   于是普通字落到 --ink，而 .dot 里那个字会落到 --accent，不用特判 */
+.hero h1 .ch {
+  animation: ct-ignite .8s var(--ease) both;
+  animation-delay: calc(var(--i, 0) * 75ms + .8s);
+}
+@keyframes ct-ignite {
+  0%   { opacity: 0; color: var(--ink-3); filter: blur(6px); }
+  100% { opacity: 1; filter: blur(0); }
+}
+
+/* 右侧那枚印：站里的圆角菱形框住主题标记 y.（形状来源见 views.js 的 hero）。
+   取 --accent-dim、压到 .16：是墙上盖久了的印，不是贴纸。
+   刻意不跟着 760px 正文列走，而是挂在一层全屏宽的定位层上——
+   宽屏时它才落得进正文右侧那片空白（top:46% 对的是整屏的中线）。
+   z-index -1 与 .lattice 同层，靠 DOM 顺序压在格纹之上、正文之下；
+   正面看是墙上的一枚淡印，真压到字上也只从字缝里透出一点。
+
+   出入场复用开幕的 ct-in（只把 opacity:0 写在 @keyframes 里），
+   落到常态后由 hs-breath 极慢地明灭：节奏照格纹的呼吸来，
+   一圈十四秒，深浅只差 .07，看久了才觉察它在动 */
+.hero-seal {
+  position: absolute;
+  top: 46%;
+  left: 50%;
+  width: 100vw;
+  height: 0; /* 只当定位层：不占布局，也不参与 hero 的 flex 排列 */
+  margin-left: -50vw;
+  z-index: -1;
+  pointer-events: none;
+  animation: ct-in 1.4s var(--ease) 1.45s both;
+}
+.hero-seal svg {
+  position: absolute;
+  top: 0;
+  right: clamp(1.2rem, 5vw, 5.5rem);
+  width: clamp(150px, 14vw, 232px);
+  height: auto;
+  transform: translateY(-50%); /* 不旋转：菱形自己就是斜的，让它与格纹同向 */
+  color: var(--accent-dim);
+  opacity: .16;
+  animation: hs-breath 14s ease-in-out infinite;
+}
+@keyframes hs-breath {
+  0%, 100% { opacity: .13; }
+  50%      { opacity: .20; }
+}
+
+/* 52 见方的坐标换算到 120 的画布：26 × 2.2 + 2.8 = 60，正落在中心 */
+.hero-seal .hs-frame { transform: translate(2.8px, 2.8px) scale(2.2); }
+.hero-seal .hs-frame path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.1;
+  /* 描边不跟着 scale 放大，细线才始终是细线 */
+  vector-effect: non-scaling-stroke;
+}
+/* 内圈：同一段 d 绕中心缩到 62%（26 − 26×.62 = 9.88），是 #loader 双层菱的写法。
+   线宽不在这儿写：上面那条 .hs-frame path 的选择器更具体，写了也不生效，
+   内圈与外框共用同一根 1.1 的发丝。opacity 也压到 .8 就到头了——
+   再淡（试过 .55）这圈就化进格纹里，等于白画 */
+.hero-seal .hs-in {
+  transform: translate(9.88px, 9.88px) scale(.62);
+  opacity: .8;
+}
+/* 标记的 x 写在 markup 里（62.5 而不是正中 60）：斜体的 y 尾向左探、
+   句点又在右，text-anchor:middle 居中的是字宽不是墨迹，得往右压半格才看着居中。
+   y=64 同理，是「字身中心」而不是基线——同一行里 .dot 也跟着走 */
+.hero-seal .hs-mark {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 34px;
+  fill: currentColor;
+  text-anchor: middle;
+}
+.hero-seal .hs-dot { fill: var(--accent); } /* 与 logo、favicon 上那个金句点同色 */
+
+/* —— 宽窄两种摆法 ——
+   ≥900px：正文列两侧有空白，印挂在右边、对着整屏中线；
+   <900px：正文列几乎顶满屏宽，右边没地方了，改挂 Hero 右上角（导航之下、
+   标题之上的空处），尺寸收小。横屏矮窗（<560px 高）那里也会撞上标题，索性收起 */
+@media (max-width: 899px) and (min-height: 560px) {
+  .hero-seal { top: 4.6rem; }
+  .hero-seal svg { right: 1.1rem; width: 106px; transform: none; }
+}
+@media (max-width: 899px) and (max-height: 559px) {
+  .hero-seal { display: none; }
+}
+
+/* —— 站内互跳进来时不播开幕 ——
+   导航的「文章」指向 index.html#posts（首页的文章列表，不是另一张页面），
+   从文章页点它，整页重新加载，开幕就再演一遍——明明只是来翻列表的。
+   带锚点的深链同理。判定由 head 里那行同步内联脚本写在 html.entered 上
+   （见 lib/shell.js）：赶在第一帧之前落位，不会先闪一下黑场再撤。
+
+   开幕不播，文字也就没有可等的节拍，开场那套延迟全部归零；
+   标题回到站点本来的逐字节奏（55ms/+180ms，与点击重播一致） */
+.entered .curtain { display: none; }
+.entered .hero .kicker,
+.entered .hero .tagline,
+.entered .hero .hero-note,
+.entered .hero .rule { animation-delay: 0s; }
+.entered .hero .scroll { animation-delay: 0s, 0s; }
+.entered .hero h1 .ch { animation-delay: calc(var(--i, 0) * 55ms + 180ms); }
+.entered .hero-seal { animation-delay: 0s; }
+
 /* ---------- 动效偏好 ---------- */
 
 @media (prefers-reduced-motion: reduce) {
@@ -223,4 +459,7 @@
   .dust { display: none; }
   .spark { display: none; }
   .hero .scroll { animation: none; }
+  /* 必须藏掉：上面把 animation 全杀了，两条 55vh 的板子就停在 translateY(0)，
+     合起来盖满全屏——这一条不写，减动效的用户会看到一片永远不散的黑 */
+  .curtain { display: none; }
 }
