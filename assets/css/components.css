@@ -222,6 +222,9 @@
   margin: 0;
 }
 .sc-name {
+  /* 卡片头上多了「置顶」徽标时（三个 flex 项），由名字吃掉多余空间，
+     篇数才稳在右侧；没置顶时与原来的 space-between 是同一个结果 */
+  flex: 1 1 auto;
   font-family: var(--serif);
   font-size: 1.18rem;
   font-weight: 400;
