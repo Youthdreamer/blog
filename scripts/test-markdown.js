@@ -7,7 +7,8 @@
    用法：node scripts/test-markdown.js   （或 npm test）
    覆盖 README 承诺的全部语法：粗体 / 斜体 / 删除线 / 行内代码 /
    内外链接 / 图片（含图注）/ 引用 / 列表 / 标题 / 分隔线 /
-   围栏代码块 / 表格（GFM 对齐），以及嵌套组合与转义安全。
+   围栏代码块 / 表格（GFM 对齐）/ 评分卡（```score，含列表徽标用的总分提取），
+   以及嵌套组合与转义安全。
    ============================================================ */
 
 const { inline, mdToHtml } = require('../lib/markdown');
@@ -32,6 +33,21 @@ function eq(name, actual, expected) {
 /* 块级测试辅助：mdToHtml 返回 { html, headings }，只断言 html */
 function block(name, src, expected) {
   eq(name, mdToHtml(src).html, expected);
+}
+
+/* 包含式断言：评分卡整块 HTML 太长，每一条都逐字面对会比测试本身还长。
+   完整字面量只留一条（钉住总体形状），其余用 has 断关键片段 */
+function has(name, html, needle) {
+  if (html.includes(needle)) {
+    pass++;
+    console.log(`  ✓ ${name}`);
+    return;
+  }
+  fail++;
+  failures.push({ name, actual: html, expected: `包含 ${JSON.stringify(needle)}` });
+  console.log(`  ✗ ${name}`);
+  console.log(`      期望包含: ${JSON.stringify(needle)}`);
+  console.log(`      实际: ${JSON.stringify(html)}`);
 }
 
 console.log('── 行内语法 ──────────────────────────────');
@@ -173,6 +189,88 @@ block('段落（多行合并）', '第一行\n第二行\n',
   '<p>第一行\n第二行</p>\n');
 block('前后留空的表格（GFM 要求）', '正文\n\n| a |\n| --- |\n| 1 |\n\n结尾\n',
   '<p>正文</p>\n<div class="table-wrap">\n<table>\n  <thead>\n      <th>a</th>\n  </thead>\n  <tbody>\n      <tr>\n        <td>1</td>\n      </tr>\n  </tbody>\n</table>\n</div>\n<p>结尾</p>\n');
+
+console.log('── 评分卡（```score 围栏） ────────────────');
+
+/* 多行期望值：逐行写、贴左对齐，空格的多少是断言的一部分 */
+const L = (...ls) => ls.join('\n') + '\n';
+
+/* 静音跑一段解析，收下它打出来的构建提醒（数据有问题时只提醒、不断构建） */
+function quiet(fn) {
+  const warns = [];
+  const real = console.warn;
+  console.warn = (m) => warns.push(m);
+  try { return { html: fn(), warns }; } finally { console.warn = real; }
+}
+
+block('评分卡：整体形状（没有分数时只剩评语与分项）',
+  '```score\n评语: 一句话\n演技: 在线\n```\n',
+  L('<div class="score-card" data-reveal>',
+    '  <p class="score-label">评分</p>',
+    '  <p class="score-verdict">一句话</p>',
+    '  <ul class="score-dims">',
+    '    <li style="--r:0"><span class="sd-name">演技</span><span class="sd-num">在线</span></li>',
+    '  </ul>',
+    '</div>'));
+
+const card = mdToHtml('```score\n8.5\n评语: 值得一看\n剧情: 9\n画面: 10\n```\n').html;
+has('评分卡：围栏被吃掉，不是代码块', card, '<div class="score-card" data-reveal>');
+has('评分卡：总分与满分', card, '<p class="score-total"><b>8.5</b><span class="score-max">/10</span></p>');
+has('评分卡：8.5 → 前八格亮、第九格半亮、第十格空', card,
+  '<i class="score-cell is-on" style="--i:7"></i><i class="score-cell is-half" style="--i:8"></i><i class="score-cell" style="--i:9"></i>');
+has('评分卡：评语在分数与分项之间', card,
+  '<p class="score-verdict">值得一看</p>\n  <ul class="score-dims">');
+has('评分卡：分项名与分值', card, '<li style="--r:0"><span class="sd-name">剧情</span>');
+has('评分卡：9 分的分项第九格亮、第十格空', card,
+  '<i class="score-cell is-on" style="--i:8"></i><i class="score-cell" style="--i:9"></i></span><span class="sd-num">9</span>');
+has('评分卡：行序号逐行加一（动效错峰用）', card, '<li style="--r:1">');
+has('评分卡：刻度对读屏静音', card, '<span class="score-scale" aria-hidden="true">');
+eq('评分卡：总分与两个分项各十格', (card.match(/score-cell/g) || []).length, 30);
+
+const bare = mdToHtml('```score\n9\n```\n').html;
+has('评分卡：裸数字当总分', bare, '<b>9</b><span class="score-max">/10</span>');
+
+const five = mdToHtml('```score\n4.5/5\n```\n').html;
+has('评分卡：满分照写', five, '<span class="score-max">/5</span>');
+eq('评分卡：满分五分就画五格', (five.match(/score-cell/g) || []).length, 5);
+
+const over = quiet(() => mdToHtml('```score\n总分: 12/10\n```\n').html);
+eq('评分卡：超出满分的刻度封顶十格全亮', (over.html.match(/is-on/g) || []).length, 10);
+eq('评分卡：超出满分只提醒一次', over.warns.length, 1);
+
+const bad = quiet(() => mdToHtml('```score\n评分: 很好\n评语: 值\n```\n').html);
+eq('评分卡：总分不是数字只提醒一次', bad.warns.length, 1);
+has('评分卡：那行被忽略，其余照常', bad.html, '<p class="score-verdict">值</p>');
+
+const empty = quiet(() => mdToHtml('```score\n\n```\n').html);
+eq('评分卡：一行内容都没有时整块不渲染', empty.html, '');
+eq('评分卡：空围栏也提醒一次', empty.warns.length, 1);
+
+const titled = quiet(() => mdToHtml('```score\n```\n', { title: '星际穿越' }).html);
+eq('评分卡：提醒带文章标题',
+  titled.warns[0], '[build] 警告：《星际穿越》的评分卡：一行内容都没有，已跳过');
+
+const sound = quiet(() => mdToHtml('```score\n8\n```\n', { title: '星际穿越' }).html);
+eq('评分卡：数据没问题时不出声', sound.warns.length, 0);
+
+/* 解析结果里的 score：正文第一张评分卡的总分，列表卡片的评分徽标用它 */
+const s95 = mdToHtml('```score\n9.5\n剧情: 10\n```\n').score;
+eq('评分提取：总分与满分', `${s95.value}/${s95.max}`, '9.5/10');
+
+const sFive = mdToHtml('```score\n4.5/5\n```\n').score;
+eq('评分提取：满分照报', `${sFive.value}/${sFive.max}`, '4.5/5');
+
+eq('评分提取：没有评分卡就是 null', mdToHtml('正文\n').score, null);
+eq('评分提取：只有分项、没有总分也是 null', mdToHtml('```score\n剧情: 9\n```\n').score, null);
+
+const sTwo = mdToHtml('```score\n8\n```\n\n```score\n9\n```\n').score;
+eq('评分提取：两张卡时只认第一张', `${sTwo.value}/${sTwo.max}`, '8/10');
+
+const sBad = quiet(() => mdToHtml('```score\n评分: 很好\n评语: 值\n```\n')).html.score;
+eq('评分提取：总分不是数字就不当评分', sBad, null);
+
+const sEmpty = quiet(() => mdToHtml('```score\n\n```\n')).html.score;
+eq('评分提取：空围栏不报评分', sEmpty, null);
 
 console.log('──────────────────────────────────────────');
 console.log(`结果：${pass} 通过，${fail} 失败`);

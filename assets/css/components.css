@@ -41,6 +41,7 @@
 .post .meta {
   display: flex;
   flex-wrap: wrap;
+  align-items: baseline; /* 行里站着衬线体的大数字（评分徽标）时，让所有项坐同一条基线 */
   gap: .4rem 1.4rem;
   font-family: var(--mono);
   font-size: .64rem;
@@ -59,6 +60,39 @@
   color: var(--accent);
 }
 .pin::before { content: "◇ "; }
+
+/* 评分徽标（首页卡片 / 标签页与合集页归档）：
+   正文里有评分卡的文章才挂，是文章里那张评分卡的缩影——金色发丝框 + 一缕淡金底，
+   数字借衬线体的等高数字。比行里的灰字明显一档：列表上远远一眼就能认出来 */
+.card-score {
+  display: inline-flex;
+  align-items: baseline;
+  gap: .22em;
+  padding: .16em .62em .24em;
+  border: 1px solid rgba(185, 163, 124, .34);
+  border-radius: 6px;
+  background: var(--accent-soft);
+  font-family: var(--serif);
+  font-size: 1.3rem;
+  line-height: 1;
+  letter-spacing: .02em;
+  color: var(--accent-br);
+  white-space: nowrap;
+}
+.card-score::before { content: "◇"; font-size: .52em; color: var(--accent-dim); }
+.card-score b {
+  font-weight: 400;
+  font-variant-numeric: lining-nums;
+}
+.card-score .cs-max {
+  font-family: var(--mono);
+  font-size: .44em;
+  letter-spacing: .06em;
+  color: var(--accent-dim);
+}
+/* 只首页卡片：把徽标推到头一排的最右，与标签/合集页一样排成一栏。
+   归档行里标题已经先吃掉了空白，这里再推也是原地不动 */
+.post .meta .card-score { margin-left: auto; }
 
 .post h2 {
   margin: .55em 0 .4em;
@@ -314,6 +348,7 @@
   transition: color .3s;
 }
 .idx-title {
+  flex: 1 1 auto; /* 吃掉整行空白：有评分徽标时，把徽标稳稳顶到最右（无徽标则与从前分毫不动） */
   font-family: var(--serif);
   font-size: 1.05rem;
   font-weight: 300;
@@ -614,6 +649,160 @@
   white-space: nowrap; /* 单元格不换行，超出时横向滚动 */
 }
 .article th { font-weight: 400; color: var(--accent); font-family: var(--mono); font-size: .72rem; letter-spacing: .12em; }
+
+/* ---------- 评分卡 ---------- */
+
+/* 正文里一段 ```score 围栏渲染成的卡片（解析在 lib/markdown.js）。
+   底色比页面抬一档（--surface），顶边压一条两端淡出的金发丝——全场唯一的高音；
+   其余全是灰字与发丝，让它安静地亮着。刻度格子是圆角菱形，站点的老记号。
+
+   选择器一律挂 .article .content 前缀：正文那条 `.article .content p` 是 (0,2,1)，
+   两段式的 .score-verdict 压不住它，边距与两端对齐都会漏进来 */
+.article .content .score-card {
+  position: relative;
+  margin: 2.8em 0;
+  padding: 1.5rem 1.9rem 1.35rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden; /* 剪掉顶线探出圆角的两头 */
+}
+.article .content .score-card::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent-dim), transparent);
+}
+
+/* 标签行：◇ 评分 ──────，与目录标签同一套写法 */
+.article .content .score-label {
+  display: flex;
+  align-items: center;
+  gap: .8em;
+  margin: 0 0 1.2rem;
+  font-family: var(--mono);
+  font-size: .6rem;
+  letter-spacing: .34em;
+  color: var(--accent-dim);
+}
+.article .content .score-label::before { content: "◇"; font-size: .5rem; }
+.article .content .score-label::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+
+/* 总分与刻度同一行：大数字坐在衬线体的旧式数字上，刻度贴着它的基线 */
+.article .content .score-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1.4rem;
+  flex-wrap: wrap;
+}
+.article .content .score-total {
+  display: flex;
+  align-items: baseline;
+  flex: 1 1 auto;
+  margin: 0;
+}
+/* 大数字与刻度之间牵一条引线（目录里的那种点线），把两头连起来 */
+.article .content .score-total::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  margin: 0 1.3rem .34rem;
+  align-self: flex-end;
+  background: var(--line);
+}
+.article .content .score-total b {
+  font-family: var(--serif);
+  font-size: 3.3rem;
+  font-weight: 400;
+  line-height: .92;
+  color: var(--accent-br);
+}
+.article .content .score-max {
+  margin-left: .25em;
+  font-family: var(--mono);
+  font-size: .78rem;
+  letter-spacing: .08em;
+  color: var(--ink-3);
+}
+
+/* 刻度：一排圆角菱形小格。满格点金、半格下半颗斜着填一半（315deg 转完正好朝下） */
+.article .content .score-scale {
+  display: inline-flex;
+  align-items: center;
+  gap: .5em;
+  font-size: 1.15rem; /* 格子是 em 尺寸：改这一处整排等比缩放 */
+}
+.article .content .score-cell {
+  width: .5em;
+  height: .5em;
+  border: 1px solid var(--line-strong);
+  border-radius: 22%;
+  transform: rotate(45deg);
+}
+.article .content .score-cell.is-on {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.article .content .score-cell.is-half {
+  border-color: var(--accent-dim);
+  background: linear-gradient(315deg, var(--accent-dim) 50%, transparent 50%);
+}
+
+/* 一句话评语：斜体衬线，正文里的一句旁白 */
+.article .content .score-verdict {
+  margin: 1.15rem 0 0;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 1.08rem;
+  line-height: 1.9;
+  color: var(--ink-2);
+  text-align: left; /* 短句不拉两端对齐 */
+}
+
+/* 分项：名次表一样的行——名字靠左，刻度与数字靠右，行与行之间一条发丝 */
+.article .content .score-dims {
+  margin: 1.4rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+.article .content .score-dims li {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin: 0;
+  padding: .52em 0;
+  border-top: 1px solid var(--line);
+}
+.article .content .sd-name {
+  flex: 1 1 auto; /* 名字吃掉整行的空白：有没有刻度，末尾的数字都稳在最右 */
+  min-width: 4.2em;
+  font-size: .92rem;
+  letter-spacing: .08em;
+  color: var(--ink-2);
+}
+.article .content .score-dims .score-scale {
+  flex: 0 0 auto;
+  font-size: .88rem; /* 分项那排比总分那排小一档，主次分明 */
+}
+.article .content .sd-num {
+  flex: 0 0 auto;
+  min-width: 2.3em;
+  margin-left: .2em;
+  font-family: var(--serif);
+  font-size: 1.2rem;
+  line-height: 1.4;
+  text-align: right;
+  white-space: nowrap;
+  color: var(--accent);
+  font-variant-numeric: lining-nums; /* 分项是表里的数字，等高的更清楚（总分那枚大数字反过来要旧式的） */
+}
 
 /* ---------- 文章图片 ---------- */
 

@@ -197,6 +197,23 @@
   word-break: break-all;
 }
 
+/* ---------- 评分卡：刻度逐格点亮 ---------- */
+
+/* 卡片自己借 [data-reveal] 的渐显进来，格子比它再晚一拍，从左往右一颗一颗亮。
+   行与行之间再错开一档（--r 由 lib/markdown.js 写在 li 上），
+   点亮顺序就沿着这张表斜着往下走；--rd 是 core.js 给卡片排的出场延迟。
+
+   隐藏态照旧只写在 @keyframes 的起始帧里，落到下面动效偏好块手里时
+   animation 全被掐掉，格子就停在默认的点亮状态——不需要单独兜底 */
+:where(.js [data-reveal]).in .score-cell {
+  animation: score-cell-in .5s var(--ease) both;
+  animation-delay: calc(var(--rd, 0ms) + var(--r, 0) * 90ms + var(--i, 0) * 55ms + 150ms);
+}
+@keyframes score-cell-in {
+  from { opacity: 0; transform: rotate(45deg) scale(.4); }
+  to   { opacity: 1; transform: rotate(45deg) scale(1); }
+}
+
 /* ---------- 响应式 ---------- */
 
 @media (max-width: 640px) {
@@ -209,9 +226,20 @@
   .article header { margin-top: 7.5rem; }
   .article .content { font-size: .99rem; }
   .post:hover { transform: translateX(.6rem); }
+  /* 评分徽标：窄屏收一档，标题那一栏不至于被挤得太窄 */
+  .idx { gap: 1rem; }
+  .card-score { font-size: .95rem; padding: .14em .5em .2em; }
   #to-top { right: 1rem; bottom: 1rem; width: 2.6rem; height: 2.6rem; }
   .word-cloud { gap: .8rem 1.4rem; margin-top: 1rem; }
   #toast { white-space: normal; max-width: 84vw; text-align: center; line-height: 1.8; }
+  /* 评分卡：内边距与格子都收一档，十格刻度才不至于顶到卡片边 */
+  .article .content .score-card { padding: 1.25rem 1.2rem 1.1rem; }
+  .article .content .score-total b { font-size: 2.8rem; }
+  .article .content .score-head { gap: .9rem; }
+  .article .content .score-scale { font-size: .95rem; }
+  .article .content .score-dims .score-scale { font-size: .72rem; }
+  .article .content .score-dims li { gap: .7rem; }
+  .article .content .sd-name { min-width: 3.6em; font-size: .86rem; }
 }
 
 /* ---------- 电影开幕（只在首页第 1 页，见 lib/views.js 的 hero） ---------- */
