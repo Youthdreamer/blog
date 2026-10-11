@@ -208,9 +208,10 @@ const state = {
   draft: false,
   pin: false,
   toc: false,
+  scoreBadge: false,
 };
 
-const FIELD_ORDER = ['title', 'slug', 'date', 'updated', 'tags', 'series', 'seriesOrder', 'summary', 'minutes', 'draft', 'pin', 'toc'];
+const FIELD_ORDER = ['title', 'slug', 'date', 'updated', 'tags', 'series', 'seriesOrder', 'summary', 'minutes', 'draft', 'pin', 'toc', 'scoreBadge'];
 const FIELD_LABEL = {
   title: '标题',
   slug: '文件名',
@@ -224,6 +225,7 @@ const FIELD_LABEL = {
   draft: '草稿',
   pin: '置顶',
   toc: '隐藏目录',
+  scoreBadge: '隐藏卡片评分',
 };
 
 const fieldNum = (key) => FIELD_ORDER.indexOf(key) + 1;
@@ -333,6 +335,11 @@ async function askField(key) {
     state.toc = /^y/i.test(await ask(`${num}隐藏目录？（y/N）`));
     return;
   }
+  if (key === 'scoreBadge') {
+    dim('  · 正文里写了 ```score 评分卡的文章，列表卡片上会挂一枚评分徽标；y = 这篇不挂');
+    state.scoreBadge = /^y/i.test(await ask(`${num}隐藏卡片评分？（y/N）`));
+    return;
+  }
 }
 
 /* 显示当前所有已填内容（确认页） */
@@ -341,7 +348,7 @@ function showState() {
   say(`  ${C.gold}确认信息${C.reset} ${C.dim}${'─'.repeat(24)}${C.reset}`);
   FIELD_ORDER.forEach((k, i) => {
     let v;
-    if (k === 'draft' || k === 'pin' || k === 'toc') v = state[k] ? '是' : '否';
+    if (k === 'draft' || k === 'pin' || k === 'toc' || k === 'scoreBadge') v = state[k] ? '是' : '否';
     else if (k === 'tags') v = state.tags.join(', ');
     else if (k === 'minutes') v = state[k] || '自动';
     else v = state[k];
@@ -392,6 +399,7 @@ function printFields() {
   say('    draft    true=草稿不发布');
   say('    pin      true=置顶到列表最前');
   say('    toc      false=隐藏本文目录');
+  say('    score_badge  false=列表卡片上不显示评分徽标（正文里的评分卡照常显示）');
   say('');
   say('  示例：');
   say('    ---');
@@ -407,6 +415,7 @@ function printFields() {
   say('    draft: true');
   say('    pin: true');
   say('    toc: false');
+  say('    score_badge: false');
   say('    ---');
   say('');
 }
@@ -456,12 +465,13 @@ async function main() {
   if (state.draft) lines.push('draft: true');
   if (state.pin) lines.push('pin: true');
   if (state.toc) lines.push('toc: false');
+  if (state.scoreBadge) lines.push('score_badge: false');
   lines.push('---', '', '');
 
   fs.writeFileSync(path.join(PATHS.posts, `${state.slug}.md`), lines.join('\n'));
 
   gold(`  ✓ 已创建 content/posts/${state.slug}.md`);
-  dim(`  · 可选字段：updated / tags / series / series_order / summary / minutes / draft / pin / toc · 完整说明：pnpm run fields`);
+  dim(`  · 可选字段：updated / tags / series / series_order / summary / minutes / draft / pin / toc / score_badge · 完整说明：pnpm run fields`);
 
   /* 询问是否立即打开编辑器：先告知将使用哪个编辑器（默认不打开，避免侵入） */
   const editor = resolveEditor();
