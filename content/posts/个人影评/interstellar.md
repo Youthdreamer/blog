@@ -7,9 +7,7 @@ slug: interstellar
 summary: 星际穿越个人影评
 ---
 
-
 ```score
-9.8
+9.5
 ```
-
-
+![interstellar](https://cdn.jsdelivr.net/gh/youthdreamer/image-bed/blog-image/2026-10/interstellar.webp "黑洞")

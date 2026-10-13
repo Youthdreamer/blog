@@ -3,7 +3,8 @@
 
 /* ============================================================
    new.js — 新文章向导（一问一答，create-next-app 风格，零依赖）
-   逐项填写 frontmatter 全部字段，生成 content/posts/<slug>.md，
+   逐项填写 frontmatter 全部字段，生成 content/posts/<slug>.md
+   （合集名与已有文件夹同名时写进 content/posts/<合集名>/——文件夹即合集），
    然后自动启动开发服务器并在浏览器打开预览，直接开始写作。
    用法：node new.js   （或 pnpm run new）
    ============================================================ */
@@ -17,6 +18,8 @@ const { execFile, spawn, spawnSync } = require('child_process');
 const { PATHS, ROOT, SITE } = require('./lib/config');
 const { slugify } = require('./lib/utils');
 const { parseFrontmatter } = require('./lib/markdown');
+// 归属规则与构建共用一套（文件夹即合集）：向导不自己再抄一份判断
+const { listPostFiles, seriesOfPath, isPrivateDir } = require('./lib/content');
 
 const PORT = Number(process.env.PORT) || 8000;
 const BASE = `http://127.0.0.1:${PORT}`;
@@ -160,9 +163,10 @@ const TERM_EDITORS = new Set(['nvim', 'vim', 'vi', 'emacs', 'nano', 'micro']);
    - GUI 编辑器（code）：直接启动 */
 function openEditor(file) {
   const ed = resolveEditor();
-  const name = file.split('/').pop();
+  // 显示相对仓库根的路径：合集文件夹里的文章只报文件名会看不出在哪
+  const shown = path.relative(ROOT, file).split(path.sep).join('/');
   if (!ed) {
-    dim(`  · 未找到可用编辑器，请手动打开：content/posts/${name}`);
+    dim(`  · 未找到可用编辑器，请手动打开：${shown}`);
     return;
   }
   const bin = ed.cmd.split(/\s+/)[0];
@@ -180,14 +184,14 @@ function openEditor(file) {
         { detached: true, stdio: 'ignore' }
       );
       child.unref();
-      say(`  · 已在新的终端窗口用 ${ed.cmd} 打开 ${name}，dev 日志保持在当前终端`);
+      say(`  · 已在新的终端窗口用 ${ed.cmd} 打开 ${shown}，dev 日志保持在当前终端`);
       return;
     }
   }
 
   const r = spawnSync(bin, [...ed.cmd.split(/\s+/).slice(1), file], { stdio: 'inherit' });
   if (r.error) {
-    dim(`  · 编辑器启动失败（${bin}），请手动打开：content/posts/${name}`);
+    dim(`  · 编辑器启动失败（${bin}），请手动打开：${shown}`);
   } else {
     say('  · 编辑器已关闭，保存的内容会自动刷新到浏览器预览');
   }
@@ -245,7 +249,7 @@ async function askField(key) {
     if (CJK.test(state.title)) {
       dim('  · 标题含中文，建议用拉丁字符 slug（避免中文文件名/URL）');
     }
-    dim('  · slug 就是文件名：content/posts/<slug>.md，文章 URL 为 /post/<slug>.html');
+    dim('  · slug 是文件名末段，也是文章 URL：/post/<slug>.html（放进合集文件夹也不变）');
     let offered = false; // 冲突重问时不再默认填入被占用的 slug
     while (true) {
       const def = offered ? undefined : auto || undefined;
@@ -261,7 +265,7 @@ async function askField(key) {
         continue;
       }
       state.slug = v;
-      say(`  ${C.gold}→${C.reset} content/posts/${v}.md · URL：/post/${v}.html`);
+      say(`  ${C.gold}→${C.reset} ${v}.md · URL：/post/${v}.html`);
       return;
     }
   }
@@ -295,8 +299,27 @@ async function askField(key) {
   }
   if (key === 'series') {
     dim('  · 合集：同一部教程系列填同一个名字，合集页会按顺序把它们串成一条线');
-    state.series = await ask(`${num}合集（可空）`);
-    return;
+    const dirs = listFolders().filter((d) => !isPrivateDir(d));
+    if (dirs.length) {
+      dim(`  · content/posts 下已在的合集文件夹：${dirs.join('  ')}（填同名就写进文件夹）`);
+    }
+    while (true) {
+      state.series = await ask(`${num}合集（可空）`);
+      if (!state.series) return;
+      // 私用文件夹里的文章构建时不收，别把稿子写进黑洞
+      const priv = listFolders().find((d) => d.trim() === state.series && isPrivateDir(d));
+      if (priv) {
+        dim(`  ✗ 「${priv}」以 _ 或 . 开头，是私用文件夹，里面的文章不会发布；请换个名字或留空`);
+        continue;
+      }
+      const folder = findSeriesFolder(state.series);
+      if (folder) {
+        say(
+          `  ${C.gold}→${C.reset} 写进 content/posts/${folder}/ ${C.dim}（文件夹即合集，frontmatter 不再写 series）${C.reset}`,
+        );
+      }
+      return;
+    }
   }
   if (key === 'seriesOrder') {
     if (!state.series) {
@@ -352,27 +375,51 @@ function showState() {
     else if (k === 'tags') v = state.tags.join(', ');
     else if (k === 'minutes') v = state[k] || '自动';
     else v = state[k];
-    const label = pad(FIELD_LABEL[k], 10);
+    const label = pad(FIELD_LABEL[k], 13); // 13 列：最宽的「隐藏卡片评分」占 12 列，留一列空格
     say(`  ${C.gold}№ ${String(i + 1).padStart(2, '0')}${C.reset}  ${label}${v || C.dim + '（空）' + C.reset}`);
   });
   say(`  ${C.dim}${'─'.repeat(28)}${C.reset}`);
+  // 目标落点：合集名撞上已有文件夹就写进文件夹（文件夹即合集）；返回改任意一项后这里会跟着变
+  const t = targetPath();
+  say(
+    `  ${C.gold}→${C.reset} content/posts/${t.rel} · URL：/post/${state.slug}.html` +
+      (t.folder ? `  ${C.dim}（文件夹即合集，不写 series）${C.reset}` : ''),
+  );
 }
 
-/* 目标文件是否存在（重名保护） */
-function fileExists() {
-  return fs.existsSync(path.join(PATHS.posts, `${state.slug}.md`));
+/* content/posts 下的顶层文件夹名（合集文件夹的候选；私用与否由调用方判） */
+function listFolders() {
+  return fs
+    .readdirSync(PATHS.posts, { withFileTypes: true })
+    .filter((e) => e.isDirectory())
+    .map((e) => e.name);
 }
 
-/* slug 冲突检测：同名文件，或 frontmatter 里已存在相同 slug 的其他文件
-   返回冲突说明（无冲突返回空串） */
+/* 合集名 → 该写进哪个文件夹（没有就空串）。与构建同一套归一：trim 后精确匹配 */
+function findSeriesFolder(name) {
+  if (!name) return '';
+  return listFolders().find((d) => d.trim() === name) || '';
+}
+
+/* 目标落点。slug 是第 02 问、合集是第 06 问，确认页还能返回改任意一项——
+   所以每次现算，不要缓存 */
+function targetPath() {
+  const name = findSeriesFolder(state.series);
+  const folder = name && !isPrivateDir(name) ? name : '';
+  const rel = `${folder ? folder + '/' : ''}${state.slug}.md`;
+  return { folder, rel, abs: path.join(PATHS.posts, rel) };
+}
+
+/* slug 冲突检测：slug 是全局唯一的（URL 扁平），所以根下与各文件夹里都要查——
+   向导放行、构建才 throw 就晚了。不参与构建的文件（非 .md、私用文件夹）不占 slug，
+   判断直接问构建用的同一个 seriesOfPath，规则只有一份 */
 function slugConflict(slug) {
-  const file = path.join(PATHS.posts, `${slug}.md`);
-  if (fs.existsSync(file)) return `已存在 ${slug}.md`;
-  for (const f of fs.readdirSync(PATHS.posts)) {
-    if (!f.endsWith('.md')) continue;
-    const { meta } = parseFrontmatter(fs.readFileSync(path.join(PATHS.posts, f), 'utf8'));
-    if (meta.slug === slug && f !== `${slug}.md`) {
-      return `《${meta.title || f}》的 frontmatter 已占用该 slug`;
+  for (const rel of listPostFiles()) {
+    if (!seriesOfPath(rel)) continue;
+    const { meta } = parseFrontmatter(fs.readFileSync(path.join(PATHS.posts, rel), 'utf8'));
+    if (path.basename(rel, '.md') === slug) return `已存在 ${rel}`;
+    if (String(meta.slug || '').trim() === slug) {
+      return `《${meta.title || rel}》的 frontmatter 已占用该 slug（${rel}）`;
     }
   }
   return '';
@@ -392,7 +439,8 @@ function printFields() {
   say(`  ${C.gold}可选（不写即缺省）${C.reset}`);
   say('    updated  最后更新日期（YYYY-MM-DD），文章页显示"更新于"');
   say('    tags     标签，如 [NixOS, 配置]（英文逗号分隔）');
-  say('    series   合集名，同一部教程系列填同一个名字');
+  say('    series   合集名，同一部教程系列填同一个名字；把文章直接放进');
+  say('             content/posts/<合集名>/ 文件夹也一样（文件夹即合集，此时不用写 series）');
   say('    series_order  第几篇（正整数），缺省按发布日期升序排');
   say('    summary  一句话摘要，显示在文章列表里');
   say('    minutes  手动阅读时长（正整数），缺省自动按字数估算');
@@ -453,11 +501,14 @@ async function main() {
     }
   }
 
-  /* 生成文件（保持干净，字段参考用 pnpm run fields 查看） */
+  /* 生成文件（保持干净，字段参考用 pnpm run fields 查看）。
+     落点现算：上面可能刚改过 slug 或合集 */
+  const t = targetPath();
   const lines = ['---', `title: ${state.title}`, `date: ${state.date}`];
   if (state.updated) lines.push(`updated: ${state.updated}`);
   if (state.tags.length) lines.push(`tags: [${state.tags.join(', ')}]`);
-  if (state.series) lines.push(`series: ${state.series}`);
+  // 写进合集文件夹就不写 series:（文件夹即合集）；series_order 单独判——文件夹里照样管用
+  if (state.series && !t.folder) lines.push(`series: ${state.series}`);
   if (state.series && state.seriesOrder) lines.push(`series_order: ${state.seriesOrder}`);
   lines.push(`slug: ${state.slug}`);
   if (state.summary) lines.push(`summary: ${state.summary}`);
@@ -468,9 +519,10 @@ async function main() {
   if (state.scoreBadge) lines.push('score_badge: false');
   lines.push('---', '', '');
 
-  fs.writeFileSync(path.join(PATHS.posts, `${state.slug}.md`), lines.join('\n'));
+  fs.writeFileSync(t.abs, lines.join('\n'));
 
-  gold(`  ✓ 已创建 content/posts/${state.slug}.md`);
+  gold(`  ✓ 已创建 content/posts/${t.rel}`);
+  if (t.folder) dim(`  · 「${t.folder}」这个文件夹就是那部合集，frontmatter 里无需 series:`);
   dim(`  · 可选字段：updated / tags / series / series_order / summary / minutes / draft / pin / toc / score_badge · 完整说明：pnpm run fields`);
 
   /* 询问是否立即打开编辑器：先告知将使用哪个编辑器（默认不打开，避免侵入） */
@@ -520,9 +572,9 @@ async function main() {
 
   /* 询问同意后再打开编辑器（终端编辑器在新窗口打开，GUI 编辑器直接启动） */
   if (openNow) {
-    openEditor(path.join(PATHS.posts, `${state.slug}.md`));
+    openEditor(t.abs);
   } else {
-    dim(`  · 未打开编辑器，可直接编辑：content/posts/${state.slug}.md`);
+    dim(`  · 未打开编辑器，可直接编辑：content/posts/${t.rel}`);
   }
 
   /* 前台 dev：本终端即 dev 控制台，挂住直到 Ctrl+C（编辑器窗口独立不受影响） */
