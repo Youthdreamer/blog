@@ -6,9 +6,10 @@
 
    用法：node scripts/test-markdown.js   （或 npm test）
    覆盖 README 承诺的全部语法：粗体 / 斜体 / 删除线 / 行内代码 /
-   内外链接 / 图片（含图注）/ 键帽（[[Ctrl+w]]）/ 引用 / 列表 / 标题 / 分隔线 /
+   内外链接 / 图片（含图注）/ 键帽（[[Ctrl+w]]）/ 剧透遮罩（||……||）/ 引用 / 列表 / 标题 / 分隔线 /
    围栏代码块（含行高亮 {3,5-7}）/ 表格（GFM 对齐）/ 评分卡（```score，含列表徽标用的总分提取）/
-   折叠块（```fold，含锚点接续与长围栏）/ 提示框（```note，含围栏误嵌提醒），
+   折叠块（```fold，含锚点接续与长围栏）/ 提示框（```note，含围栏误嵌提醒）/
+   脚注（[^1] 引用与定义汇总，含三种构建提醒），
    以及嵌套组合与转义安全。
    ============================================================ */
 
@@ -90,6 +91,31 @@ eq('行内代码里的 [[x]] 不误渲染', inline('`[[x]]`'), '<code>[[x]]</cod
 eq('粗体里的键帽 **[[x]]**', inline('**[[x]]**'), '<strong><kbd>x</kbd></strong>');
 eq('键帽先到先得 [[a]](url)', inline('[[a]](url)'), '<kbd>a</kbd>(url)');
 eq('普通链接不受键帽影响 [a](url)', inline('[a](url)'), '<a href="url">a</a>');
+
+console.log('── 剧透遮罩（||……||）──────────────────────');
+
+eq('遮罩 ||结局他赢了||',
+  inline('剧透：||结局他赢了||'),
+  '剧透：<span class="spoiler" tabindex="0">结局他赢了</span>');
+eq('遮罩内容走行内语法 ||**重点**||',
+  inline('||**重点**||'),
+  '<span class="spoiler" tabindex="0"><strong>重点</strong></span>');
+eq('遮罩内容转义 ||<b>||',
+  inline('||<b>||'),
+  '<span class="spoiler" tabindex="0">&lt;b&gt;</span>');
+eq('未闭合 || 原样输出', inline('没闭合 || 原样'), '没闭合 || 原样');
+/* 空遮罩保持字面：与 ~~ 的空删除线（出空 <del>）有意不同——空的可聚焦
+   span 更糟；四连整段收走，不与后面的 || 再配对，||||x|||| 不藏字 */
+eq('空遮罩 |||| 原样输出', inline('||||'), '||||');
+eq('空遮罩四连不与后文再配对 ||||x||||', inline('||||x||||'), '||||x||||');
+/* 裸写两个独立 || 会被配成一个遮罩——README 已知边界，进反引号即可 */
+eq('裸写的两个 || 配对成遮罩 a || b || c',
+  inline('a || b || c'),
+  'a <span class="spoiler" tabindex="0"> b </span> c');
+eq('行内代码里的 || 不误渲染', inline('`||不改||`'), '<code>||不改||</code>');
+eq('键帽里的 || 不误渲染', inline('[[||]]'), '<kbd>||</kbd>');
+block('遮罩：段落里的一条', '结局：||他赢了||\n',
+  '<p>结局：<span class="spoiler" tabindex="0">他赢了</span></p>\n');
 
 console.log('── 嵌套与组合（本次修复重点）──────────────');
 
@@ -447,6 +473,154 @@ const noteGuard = quiet(() =>
 eq('误嵌提醒：提示框里直接写 ```fold 时提醒一次', noteGuard.warns.length, 1);
 eq('误嵌提醒：提示框的文案', noteGuard.warns[0],
   '[build] 警告：《Hyprland 配置》的提示框：正文里的 ```fold 会提前把它关掉——要往里嵌围栏或代码块，外层得用更长的围栏开栅（四个反引号）');
+
+console.log('── 脚注（[^1] 引用与定义）─────────────');
+
+block('脚注：整体形状（引用出上标，定义汇总文末）',
+  '正文引用[^1]。\n\n[^1]: 第一条定义\n',
+  L('<p>正文引用<sup class="fn-ref"><a href="#fn-1" id="fnref-1">1</a></sup>。</p>',
+    '<section class="footnotes" data-reveal>',
+    '<p class="fn-label">脚注</p>',
+    '<ol>',
+    '<li id="fn-1">第一条定义 <a class="fn-back" href="#fnref-1" aria-label="回到引用">↩</a></li>',
+    '</ol>',
+    '</section>'));
+
+/* 同一标签多处引用：只有第一处带 id（回跳的落点），其余只出号码 */
+const fnRepeat = mdToHtml('再看[^a] 和 [^a]。\n\n[^a]: 甲\n').html;
+has('脚注：第一处引用带回跳锚点 id', fnRepeat,
+  '<sup class="fn-ref"><a href="#fn-1" id="fnref-1">1</a></sup>');
+has('脚注：重复引用只出号码、不带 id', fnRepeat,
+  '<sup class="fn-ref"><a href="#fn-1">1</a></sup>');
+eq('脚注：回跳锚点全篇只挂一处', (fnRepeat.match(/id="fnref-1"/g) || []).length, 1);
+
+/* 编号看引用顺序，不看定义摆放顺序——定义倒着写也照引用序发号 */
+block('脚注：编号按首次引用顺序（定义倒着写也照引用序）',
+  '先 B[^b] 后 A[^a]。\n\n[^a]: 甲\n[^b]: 乙\n',
+  L('<p>先 B<sup class="fn-ref"><a href="#fn-1" id="fnref-1">1</a></sup> 后 A<sup class="fn-ref"><a href="#fn-2" id="fnref-2">2</a></sup>。</p>',
+    '<section class="footnotes" data-reveal>',
+    '<p class="fn-label">脚注</p>',
+    '<ol>',
+    '<li id="fn-1">乙 <a class="fn-back" href="#fnref-1" aria-label="回到引用">↩</a></li>',
+    '<li id="fn-2">甲 <a class="fn-back" href="#fnref-2" aria-label="回到引用">↩</a></li>',
+    '</ol>',
+    '</section>'));
+
+has('脚注：标签不限数字（[^注] 之类照常）',
+  mdToHtml('看这里[^注]。\n\n[^注]: 中文标签也行\n').html,
+  '<li id="fn-1">中文标签也行 <a class="fn-back" href="#fnref-1"');
+has('脚注：缩进续行并入定义（剥 2 格）',
+  mdToHtml('引用[^1]。\n\n[^1]: 第一行\n  第二行\n').html,
+  '<li id="fn-1">第一行\n第二行 <a class="fn-back"');
+has('脚注：定义正文走行内语法（链接/粗体照常）',
+  mdToHtml('引用[^1]。\n\n[^1]: 见[官方文档](https://example.com)与**重点**\n').html,
+  '<li id="fn-1">见<a href="https://example.com" target="_blank" rel="noopener">官方文档</a>与<strong>重点</strong> <a class="fn-back"');
+
+/* 定义行在正文里不留痕：紧跟段落与表格行（无空行）都要被接住 */
+block('脚注：定义紧跟段落（无空行）也被接住',
+  '一段话。[^1]\n[^1]: 定义\n',
+  L('<p>一段话。<sup class="fn-ref"><a href="#fn-1" id="fnref-1">1</a></sup></p>',
+    '<section class="footnotes" data-reveal>',
+    '<p class="fn-label">脚注</p>',
+    '<ol>',
+    '<li id="fn-1">定义 <a class="fn-back" href="#fnref-1" aria-label="回到引用">↩</a></li>',
+    '</ol>',
+    '</section>'));
+
+const fnTable = quiet(() =>
+  mdToHtml('看这个[^1]。\n\n| a |\n| --- |\n| 1 |\n[^1]: 定义\n').html);
+eq('脚注：定义紧跟表格行也被接住、不出声', fnTable.warns.length, 0);
+has('脚注：表格后的定义进了文末', fnTable.html, '<li id="fn-1">定义 <a class="fn-back" href="#fnref-1"');
+eq('脚注：表格后的定义不成段落', fnTable.html.includes('<p>[^1]:'), false);
+
+/* ctx 透传钉子：引用写在粗体/遮罩/引用块/表格单元里都照常认 */
+has('脚注：粗体里的引用照常认（ctx 透传）',
+  mdToHtml('**粗[^1]**\n\n[^1]: 甲\n').html,
+  '<strong>粗<sup class="fn-ref"><a href="#fn-1" id="fnref-1">1</a></sup></strong>');
+has('脚注：遮罩里的引用照常认（ctx 透传）',
+  mdToHtml('||遮[^1]||\n\n[^1]: 甲\n').html,
+  '<span class="spoiler" tabindex="0">遮<sup class="fn-ref"><a href="#fn-1" id="fnref-1">1</a></sup></span>');
+has('脚注：引用块里的引用照常认（ctx 透传）',
+  mdToHtml('> 引用里也要出处[^1]\n\n[^1]: 甲\n').html,
+  '<blockquote>\n<p>引用里也要出处<sup class="fn-ref"><a href="#fn-1" id="fnref-1">1</a></sup></p>\n</blockquote>');
+has('脚注：表格单元格里的引用照常认（ctx 透传）',
+  mdToHtml('| 来源 |\n| --- |\n| 官方[^1] |\n\n[^1]: 甲\n').html,
+  '<td>官方<sup class="fn-ref"><a href="#fn-1" id="fnref-1">1</a></sup></td>');
+
+/* 折叠块里写的引用与定义：账本跟着递归走，最外层统一汇总（只出一个区） */
+const fnFold = quiet(() =>
+  mdToHtml('外面引用[^1]。\n\n```fold\n点开看\n里面引用[^2]\n[^2]: 折里的定义\n```\n\n[^1]: 甲\n').html);
+eq('脚注：折叠块里的引用与定义也汇总文末、不出声', fnFold.warns.length, 0);
+has('脚注：折叠块里的引用照常出号',
+  fnFold.html,
+  '<div class="fold-inner"><p>里面引用<sup class="fn-ref"><a href="#fn-2" id="fnref-2">2</a></sup></p>');
+has('脚注：折里的定义进了文末', fnFold.html, '<li id="fn-2">折里的定义 <a class="fn-back" href="#fnref-2"');
+eq('脚注：全篇只拼一个「脚注」区', (fnFold.html.match(/class="footnotes"/g) || []).length, 1);
+
+/* 标题里的引用：正文照常出号，目录文本剥掉占位（先剥占位再剥标签） */
+const fnHead = mdToHtml('## 标题[^1]\n\n[^1]: 一\n');
+eq('脚注：标题里引用——目录不带号', fnHead.headings[0].text, '标题');
+has('脚注：标题正文里照常出号', fnHead.html,
+  '<h2 id="sec-1">标题<sup class="fn-ref"><a href="#fn-1" id="fnref-1">1</a></sup></h2>\n');
+
+const fnHeadStrip = quiet(() => mdToHtml('## 标题[^<b>]\n', { title: '星际穿越' }));
+eq('脚注：目录剥占位不留残渣（标签含尖括号时）', fnHeadStrip.html.headings[0].text, '标题');
+has('脚注：没定义的引用正文里还原字面、标签照转义',
+  fnHeadStrip.html.html, '<h2 id="sec-1">标题[^&lt;b&gt;]</h2>');
+
+/* 三种构建提醒：重复定义 / 引用没有定义 / 定义没人引用 */
+const fnDup = quiet(() => mdToHtml('[^1]。\n\n[^1]: 先\n[^1]: 后\n', { title: '星际穿越' }).html);
+eq('脚注：重复定义提醒一次', fnDup.warns.length, 1);
+eq('脚注：重复定义提醒的文案', fnDup.warns[0],
+  '[build] 警告：《星际穿越》的脚注：[^1] 的定义写了不止一次，后一个已忽略（只认第一个）');
+has('脚注：重复定义只认第一个', fnDup.html, '<li id="fn-1">先 <a class="fn-back"');
+
+const fnMiss = quiet(() => mdToHtml('引用[^ok] 和 [^ghost]。\n\n[^ok]: 有\n', { title: '星际穿越' }).html);
+eq('脚注：引用没有定义时提醒一次', fnMiss.warns.length, 1);
+eq('脚注：引用没有定义提醒的文案', fnMiss.warns[0],
+  '[build] 警告：《星际穿越》的脚注：引用 [^ghost] 没有对应定义，保持原样');
+has('脚注：没有定义的引用还原成字面', fnMiss.html,
+  '<p>引用<sup class="fn-ref"><a href="#fn-1" id="fnref-1">1</a></sup> 和 [^ghost]。</p>');
+
+const fnLonely = quiet(() => mdToHtml('正文。\n\n[^lonely]: 没人用\n', { title: '星际穿越' }).html);
+eq('脚注：定义没人引用时提醒一次', fnLonely.warns.length, 1);
+eq('脚注：定义没人引用提醒的文案', fnLonely.warns[0],
+  '[build] 警告：《星际穿越》的脚注：定义 [^lonely] 没有地方引用，已忽略');
+eq('脚注：没人引用的定义不拼区', fnLonely.html, '<p>正文。</p>\n');
+
+/* 容错与边界：无效标签静默；引用先于链接；代码里不认；占位不残留 */
+const fnBadLabel = quiet(() => mdToHtml('空标签[^] 与空白标签[^a b]。\n').html);
+eq('脚注：空标签与含空白的标签不认', fnBadLabel.html, '<p>空标签[^] 与空白标签[^a b]。</p>\n');
+eq('脚注：无效标签不出声', fnBadLabel.warns.length, 0);
+
+has('脚注：引用先于链接（[^1](url) 按脚注意图走）',
+  mdToHtml('[^1](url)。\n\n[^1]: 甲\n').html,
+  '<p><sup class="fn-ref"><a href="#fn-1" id="fnref-1">1</a></sup>(url)。</p>');
+
+eq('脚注：裸 inline（无 ctx）时引用保持字面', inline('[^1]'), '[^1]');
+eq('脚注：无引用无定义时输出不变', mdToHtml('正文。\n').html, '<p>正文。</p>\n');
+
+const fnCode = quiet(() => mdToHtml('看 `[^1]` 就行\n').html);
+eq('脚注：行内代码里的引用不渲染', fnCode.html, '<p>看 <code>[^1]</code> 就行</p>\n');
+eq('脚注：行内代码里的引用不提醒', fnCode.warns.length, 0);
+has('脚注：代码块里的 [^1]: 照旧是代码',
+  mdToHtml('```\n[^1]: 不是定义\n```\n').html,
+  '<code class="lang-plaintext">[^1]: 不是定义</code>');
+
+/* 工作队列：定义正文里的引用照常编号（二层定义跟着解析）；
+   没人引用的定义正文根本不解析，幽灵引用不会被拉进提醒 */
+const fnChain = mdToHtml('引用[^1]。\n\n[^1]: 见[^2]\n[^2]: 二层\n').html;
+has('脚注：定义正文里再引用照常编号（工作队列）', fnChain,
+  '<li id="fn-1">见<sup class="fn-ref"><a href="#fn-2" id="fnref-2">2</a></sup> <a class="fn-back" href="#fnref-1"');
+has('脚注：二层定义照常成条目', fnChain, '<li id="fn-2">二层 <a class="fn-back" href="#fnref-2"');
+
+const fnJunk = quiet(() => mdToHtml('引用[^1]。\n\n[^1]: 甲\n[^unused]: 见[^ghost]\n', { title: '星际穿越' }));
+eq('脚注：没人引用的定义正文不解析（不留幽灵提醒）', fnJunk.warns.length, 1);
+eq('脚注：幽灵引用不会被拉进提醒', fnJunk.warns[0],
+  '[build] 警告：《星际穿越》的脚注：定义 [^unused] 没有地方引用，已忽略');
+
+const fnNul = quiet(() => mdToHtml('引用[^1] 与没定义的[^ghost]。\n\n[^1]: 甲\n').html);
+eq('脚注：占位符一个不残留', fnNul.html.includes('\0'), false);
 
 console.log('──────────────────────────────────────────');
 console.log(`结果：${pass} 通过，${fail} 失败`);

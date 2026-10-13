@@ -28,7 +28,9 @@
   if (!reduceMotion) {
     document.addEventListener('pointerdown', function (e) {
       if (e.button !== 0) return; // 只响应左键
-      if (e.target.closest('a, button, .seal, .logo')) return; // 交互元素上不打扰
+      // 交互元素上不打扰；遮罩也算——它是要点开的正文，涟漪别在字上荡开
+      // （折叠块的提示条宽，涟漪照常留着，不排除）
+      if (e.target.closest('a, button, .seal, .logo, .spoiler')) return;
       var r = document.createElement('span');
       r.className = 'ink-ripple';
       r.style.left = e.clientX + 'px';

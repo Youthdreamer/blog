@@ -578,6 +578,30 @@
   white-space: nowrap;
 }
 
+/* ---------- 剧透遮罩 ---------- */
+/* ||……|| → <span class="spoiler">（解析见 lib/markdown.js）。一句话的剧透：
+   默认模糊着，点一下 / 回车 / Tab 聚焦揭开，揭开就不再合上（enhance.js）。
+   用 filter 模糊不是把字涂透明——复制拿到的仍是原文、读屏照读：
+   遮的是屏幕上的余光，不是真秘密 */
+.article .content .spoiler {
+  filter: blur(.35em);
+  cursor: pointer;
+  border-radius: 4px;
+  transition: filter .45s var(--ease);
+}
+.article .content .spoiler.on,
+.article .content .spoiler:focus { filter: none; }
+/* 鼠标点出的焦点圈掐掉（那是点击的余烬）；键盘 Tab 进来的金圈照给 */
+.article .content .spoiler:focus:not(:focus-visible) { outline: none; }
+.article .content .spoiler:focus-visible {
+  outline: 2px solid var(--accent-dim);
+  outline-offset: 3px;
+}
+/* 打印直接显形：纸上没有「点一下」 */
+@media print {
+  .article .content .spoiler { filter: none; }
+}
+
 .article pre {
   margin: 2.2em 0;
   padding: 1.35rem 1.5rem;
@@ -947,6 +971,70 @@
 
 /* 段落自带 1.7em 底边距，末元素再留就把卡底撑出空档（同 .fold-inner 的收口） */
 .article .content .note > :last-child { margin-bottom: 0; }
+
+/* ---------- 脚注 ---------- */
+/* 正文里的 [^1] 引用与文末汇总的「脚注」区（解析见 lib/markdown.js 的
+   resolveFootnotes）。区头照目录标签的 ◇ 句法；点引用跳进区里、点 ↩ 跳回
+   原处——li 与引用锚点都留 6rem 落点偏移，黏在页头的导航不糊脸（同 h2/h3） */
+.article .content .footnotes {
+  margin: 3.4em 0 0;
+  padding-top: 1.6rem;
+  border-top: 1px solid var(--line);
+  font-size: .88rem;
+}
+.article .content .fn-label {
+  font-family: var(--mono);
+  font-size: .62rem;
+  letter-spacing: .3em;
+  color: var(--ink-3);
+  display: flex;
+  align-items: center;
+  gap: .9rem;
+  margin: 0 0 1.1rem;
+}
+.article .content .fn-label::before { content: "◇"; color: var(--accent-dim); font-size: .5rem; }
+.article .content .fn-label::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+.article .content .footnotes ol {
+  margin: 0;
+  padding-left: 1.6rem;
+}
+.article .content .footnotes li {
+  line-height: 1.9;
+  color: var(--ink-2);
+  scroll-margin-top: 6rem;
+}
+.article .content .footnotes li::marker {
+  font-family: var(--mono);
+  font-size: .8em;
+  color: var(--accent-dim);
+}
+/* 从引用跳进来：淡金底一闪，收掉默认描边（同 .series-posts .idx:target 的精神） */
+.article .content .footnotes li:target {
+  outline: none;
+  background: var(--accent-soft);
+  border-radius: 4px;
+}
+
+/* 正文里的上标号码：小字 + line-height 0 不撑行距，抬到基线之上 */
+.article .content .fn-ref {
+  font-size: .56rem;
+  line-height: 0;
+  vertical-align: super;
+  margin-left: .1em;
+}
+/* 引用与回跳都是链接，但别要 .article a 的金色底线（同 .related-item 的
+   特异性先例）：上标是一枚小号码，底线会把它划脏；↩ 是符号，也一样。
+   回跳锚点也留 6rem 落点偏移（引用可能贴着页顶） */
+.article .content .fn-ref a,
+.article .content .fn-back {
+  font-family: var(--mono);
+  border-bottom: none;
+  scroll-margin-top: 6rem;
+}
+.article .content .fn-ref a { color: var(--accent-dim); }
+.article .content .fn-back { font-size: .82em; color: var(--ink-3); }
+.article .content .fn-ref a:hover,
+.article .content .fn-back:hover { color: var(--accent-br); }
 
 /* ---------- 文章图片 ---------- */
 

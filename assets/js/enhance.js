@@ -26,6 +26,21 @@
     if (e.key === 'Escape' || e.key === 'Esc') imgbox.classList.remove('show');
   });
 
+  /* ---------- 剧透遮罩：点一下 / 回车揭开，揭开就不再合上 ---------- */
+  /* ||……|| 渲染成可聚焦的 .spoiler（lib/markdown.js）。无 JS 或纯键盘时
+     靠 CSS 的 :focus 也能看；这里补点击与回车的「点亮」。只加不减：
+     揭开是单向动作，再点一下不会合上（合上只会误触） */
+  document.querySelectorAll('.article .content .spoiler').forEach(function (s) {
+    var reveal = function () { s.classList.add('on'); };
+    s.addEventListener('click', reveal);
+    s.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
+        e.preventDefault(); /* 空格默认滚页，别让页面跟着跳 */
+        reveal();
+      }
+    });
+  });
+
   /* ---------- 代码块：语法高亮 + 复制按钮 ---------- */
   document.querySelectorAll('.article pre').forEach(function (pre) {
     var code = pre.querySelector('code');
