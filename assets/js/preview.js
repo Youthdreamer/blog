@@ -33,7 +33,11 @@
   }
   function lpRenderInternal(p) {
     var tags = (p.tags || []).map(function (t) { return '<span># ' + lpEsc(t) + '</span>'; }).join('');
-    return '<p class="lp-meta">' + lpEsc(p.dateText) + ' · 约 ' + p.minutes + ' 分钟</p>' +
+    // 页面（kind: 'page'，如「关于」）没有日期与阅读时长，头部换成身份标签；文章照旧
+    var meta = p.kind === 'page'
+      ? '<p class="lp-meta">页面</p>'
+      : '<p class="lp-meta">' + lpEsc(p.dateText) + ' · 约 ' + p.minutes + ' 分钟</p>';
+    return meta +
       '<p class="lp-title">' + lpEsc(p.title) + '</p>' +
       (p.summary ? '<p class="lp-summary">' + lpEsc(p.summary) + '</p>' : '') +
       (tags ? '<p class="lp-tags">' + tags + '</p>' : '');

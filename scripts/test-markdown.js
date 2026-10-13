@@ -7,8 +7,8 @@
    用法：node scripts/test-markdown.js   （或 npm test）
    覆盖 README 承诺的全部语法：粗体 / 斜体 / 删除线 / 行内代码 /
    内外链接 / 图片（含图注）/ 引用 / 列表 / 标题 / 分隔线 /
-   围栏代码块 / 表格（GFM 对齐）/ 评分卡（```score，含列表徽标用的总分提取），
-   以及嵌套组合与转义安全。
+   围栏代码块 / 表格（GFM 对齐）/ 评分卡（```score，含列表徽标用的总分提取）/
+   折叠块（```fold，含锚点接续与长围栏），以及嵌套组合与转义安全。
    ============================================================ */
 
 const { inline, mdToHtml } = require('../lib/markdown');
@@ -271,6 +271,54 @@ eq('评分提取：总分不是数字就不当评分', sBad, null);
 
 const sEmpty = quiet(() => mdToHtml('```score\n\n```\n')).html.score;
 eq('评分提取：空围栏不报评分', sEmpty, null);
+
+console.log('── 折叠块（```fold 围栏） ─────────────────');
+
+block('折叠块：整体形状（提示语在外，正文折叠）',
+  '```fold\n剧透警告\n结局其实是**这样**。\n```\n',
+  L('<details class="fold" data-reveal>',
+    '  <summary class="fold-head"><span class="fold-label">剧透警告</span></summary>',
+    '  <div class="fold-body"><div class="fold-inner"><p>结局其实是<strong>这样</strong>。</p>',
+    '</div></div>',
+    '</details>'));
+
+const foldRich = mdToHtml('```fold\n展开看清单\n- 甲\n- 乙\n```\n').html;
+has('折叠块：正文照常按 markdown 解析（列表）', foldRich, '<li>甲</li>');
+has('折叠块：提示语走行内解析', mdToHtml('```fold\n**重要**\n正文\n```\n').html,
+  '<span class="fold-label"><strong>重要</strong></span>');
+has('折叠块：提示语留空用默认「此段封存」', mdToHtml('```fold\n\n正文\n```\n').html,
+  '<span class="fold-label">此段封存</span>');
+
+const foldEmpty = quiet(() => mdToHtml('```fold\n只写了提示语\n```\n').html);
+eq('折叠块：只有提示语时整块不渲染', foldEmpty.html, '');
+eq('折叠块：空块提醒一次', foldEmpty.warns.length, 1);
+const foldTitled = quiet(() => mdToHtml('```fold\n\n```\n', { title: '星际穿越' }).html);
+eq('折叠块：提醒带文章标题',
+  foldTitled.warns[0], '[build] 警告：《星际穿越》的折叠块：没有可折叠的内容，已跳过');
+
+/* 锚点：内层标题不进目录，但它的 sec-N 接着外层编号走，不与外层撞号 */
+const foldHead = mdToHtml('```fold\n内层\n## 藏起来的标题\n```\n\n## 外面的标题\n');
+eq('折叠块：内层标题不进目录', foldHead.headings.length, 1);
+eq('折叠块：目录里是外层那个', foldHead.headings[0].text, '外面的标题');
+has('折叠块：内层标题的锚点接着外层编号', foldHead.html, '<h2 id="sec-1">藏起来的标题</h2>');
+has('折叠块：外层标题接在内层之后', foldHead.html, '<h2 id="sec-2">外面的标题</h2>');
+
+/* 评分提取：折叠里的卡是「合着的内容」，不当全篇评分 */
+const foldNoScore = quiet(() =>
+  mdToHtml('上面的正文\n\n```fold\n藏着结局\n\n```score\n9\n```\n```\n')).html.score;
+eq('折叠块：内层评分卡不算全篇评分', foldNoScore, null);
+const foldOuter = quiet(() =>
+  mdToHtml('```score\n8\n```\n\n```fold\n藏着\n\n```score\n9\n```\n```\n')).html.score;
+eq('折叠块：外层有卡时外层说了算', `${foldOuter.value}/${foldOuter.max}`, '8/10');
+
+/* 长围栏（CommonMark 式长度匹配）：折叠正文里要写代码块，就用四反引号开栅 */
+const foldCode = mdToHtml('````fold\n展开看代码\n```js\nconst x = 1;\n```\n````\n').html;
+has('折叠块：四反引号开栅，正文里能安稳放代码块', foldCode,
+  '<pre><code class="lang-js">const x = 1;</code></pre>');
+has('折叠块：代码块落在折叠正文里', foldCode, '<div class="fold-inner"><pre>');
+eq('长围栏：四反引号代码块里的三反引号原样显示',
+  mdToHtml('````\n```\n代码里的围栏\n```\n````\n').html,
+  '<pre><code class="lang-plaintext">```\n代码里的围栏\n```</code></pre>\n');
 
 console.log('──────────────────────────────────────────');
 console.log(`结果：${pass} 通过，${fail} 失败`);

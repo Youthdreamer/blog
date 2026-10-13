@@ -2,13 +2,14 @@
 'use strict';
 
 /* ============================================================
-   test-posts.js — 文章归属（文件夹 = 合集）规则回归测试
+   test-posts.js — 文章归属（文件夹 = 合集）与正文链接改写回归测试
 
    用法：node scripts/test-posts.js   （或 pnpm test，与 markdown 测试一起跑）
    归属规则都收在 lib/content.js 的 seriesOfPath（路径 → 合集）与
    pickSeries（文件夹优先）两个纯函数里，前半段直接喂字符串断言，不碰任何文件。
    末段在系统临时目录里造一棵树跑 loadPosts(base)，钉住纯函数测不到的那半：
-   文件名只取末段（slug 不带文件夹）、file 记相对路径、各类提醒的触发时机。
+   文件名只取末段（slug 不带文件夹）、file 记相对路径、各类提醒的触发时机、
+   正文 .md 链接的改写（见 lib/content.js 的 resolveMdLinks）。
    夹具只建在 os.tmpdir()，绝不碰仓库的 content/。
    ============================================================ */
 
@@ -175,6 +176,51 @@ try {
   }
 } finally {
   fs.rmSync(tmp, { recursive: true, force: true });
+}
+
+console.log('');
+console.log('正文 .md 链接改写（临时目录）');
+
+const tmp4 = fs.mkdtempSync(path.join(os.tmpdir(), 'youth-posts-mdlink-'));
+const mk4 = (rel, text) => {
+  fs.mkdirSync(path.dirname(path.join(tmp4, rel)), { recursive: true });
+  fs.writeFileSync(path.join(tmp4, rel), text);
+};
+try {
+  mk4(
+    'source.md',
+    '---\ntitle: 源头\nslug: source\ndate: 2026-01-02\n---\n\n' +
+      '[甲](./target.md)、[带锚点](./target.md#sec-2)、[子文件夹](./个人影评/inside.md)、' +
+      '[改了名](./中文文件.md)\n\n' +
+      '[外链](https://example.com/note.md)、[绝对路径](/post/target.md)\n\n' +
+      '[草稿](./wip.md)、[没这篇](./ghost.md)\n\n' +
+      '[撞名](./dup.md)\n',
+  );
+  mk4('target.md', post('目标', 'target'));
+  mk4('中文文件.md', '---\ntitle: 改名了\nslug: renamed\ndate: 2026-01-01\n---\n\n正文\n');
+  mk4('个人影评/inside.md', post('夹里', 'inside'));
+  mk4('个人影评/dup.md', post('甲篇', 'dup-a'));
+  mk4('旧影评/dup.md', post('乙篇', 'dup-b'));
+  mk4('wip.md', post('草稿目标', 'wip', 'draft: true\n'));
+
+  const { value: ps4, warns: w4 } = quiet(() => loadPosts(tmp4));
+  const src = ps4.find((p) => p.slug === 'source').html;
+  const w = w4.join('\n');
+
+  has('相对 .md 链接：改写成文章 URL', src, '<a href="target.html">甲</a>');
+  has('带锚点：锚点原样跟上', src, '<a href="target.html#sec-2">');
+  has('子文件夹里的文章：按文件名照样找得到', src, '<a href="inside.html">');
+  has('frontmatter slug 覆盖文件名：按真实 slug 改写', src, '<a href="renamed.html">');
+  has('外链不动', src, '<a href="https://example.com/note.md" target="_blank"');
+  has('/ 开头的绝对路径不动', src, '<a href="/post/target.md">');
+  has('指向草稿：链接保持原样', src, '<a href="./wip.md">');
+  has('草稿的提醒指名道姓', w, '《草稿目标》还是草稿');
+  has('找不到目标：链接保持原样', src, '<a href="./ghost.md">');
+  has('找不到的提醒', w, '找不到对应的文章');
+  has('同名多篇：不瞎猜，保持原样', src, '<a href="./dup.md">');
+  has('撞名的提醒列出两边', w, '对上了多篇同名文章');
+} finally {
+  fs.rmSync(tmp4, { recursive: true, force: true });
 }
 
 console.log('──────────────────────────────────────────');

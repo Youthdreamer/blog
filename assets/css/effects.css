@@ -240,6 +240,9 @@
   .article .content .score-dims .score-scale { font-size: .72rem; }
   .article .content .score-dims li { gap: .7rem; }
   .article .content .sd-name { min-width: 3.6em; font-size: .86rem; }
+  /* 折叠块：内边距与评分卡同节奏收一档 */
+  .article .content .fold-head { padding: .92rem 1.15rem; }
+  .article .content .fold-inner { padding: 1rem 1.15rem 1.2rem; }
 }
 
 /* ---------- 电影开幕（只在首页第 1 页，见 lib/views.js 的 hero） ---------- */

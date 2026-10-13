@@ -804,6 +804,94 @@
   font-variant-numeric: lining-nums; /* 分项是表里的数字，等高的更清楚（总分那枚大数字反过来要旧式的） */
 }
 
+/* ---------- 折叠块 ---------- */
+
+/* 正文里一段 ```fold 围栏渲染成的「封印」（解析在 lib/markdown.js）：
+   合着时像一封压了印的信——金边、极淡的斜纹封条、◆ 实心菱形与「点开揭晓」；
+   拆开后封条褪去、分隔线浮出，◆ 转为 ◇、字样换成「收起」。
+   正文层 .fold-body 只管裁切（点开的动效把高度从 0 拉到自然高），
+   内边距全在 .fold-inner 上——高度归零时 padding 不露馅。
+
+   选择器一律挂 .article .content 前缀，理由同上面的评分卡；
+   .fold 自己刻意不写 transition：入场渐显靠 effects.css 的 [data-reveal]，
+   一条 transition 简写会把它的错峰延迟一起重置 */
+.article .content .fold {
+  position: relative;
+  margin: 2.4em 0;
+  background: var(--surface);
+  border: 1px solid rgba(185, 163, 124, .26);
+  border-radius: 12px;
+  overflow: hidden; /* 剪掉封条纹探出圆角的部分 */
+}
+.article .content .fold[open] { border-color: var(--line); }
+
+/* 封条：极淡的斜纹，拆封时淡去 */
+.article .content .fold::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(135deg, rgba(185, 163, 124, .05) 0 1px, transparent 1px 7px);
+  transition: opacity .45s var(--ease);
+}
+.article .content .fold[open]::before { opacity: 0; }
+
+/* 提示语行：◆ 封印 → ◇ 拆封；右侧「点开揭晓 / 收起」由 CSS 换字。
+   details 本身就会向读屏报开合状态，换出来的字样只是给眼睛看的 */
+.article .content .fold-head {
+  position: relative; /* 压在封条纹之上 */
+  display: flex;
+  align-items: center;
+  gap: .9rem;
+  padding: 1.02rem 1.5rem;
+  cursor: pointer;
+  list-style: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color .45s var(--ease);
+}
+.article .content .fold-head::-webkit-details-marker { display: none; }
+.article .content .fold[open] .fold-head { border-bottom-color: var(--line); }
+
+.article .content .fold-head::before {
+  content: "◆";
+  font-size: .58rem;
+  color: var(--accent);
+  transition: color .35s var(--ease);
+}
+.article .content .fold[open] .fold-head::before { content: "◇"; color: var(--accent-dim); }
+.article .content .fold-head::after {
+  content: "点开揭晓";
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: .6rem;
+  letter-spacing: .18em;
+  white-space: nowrap;
+  color: var(--accent-dim);
+  transition: color .35s var(--ease);
+}
+.article .content .fold[open] .fold-head::after { content: "收起"; }
+.article .content .fold-head:hover::before,
+.article .content .fold-head:hover::after { color: var(--accent-br); }
+
+/* 提示语：纸白衬线（金色只留给标记与提示字样） */
+.article .content .fold-label {
+  font-family: var(--serif);
+  font-size: 1.02rem;
+  line-height: 1.7;
+  color: var(--ink);
+}
+
+/* 焦点环收进卡内：正 offset 会被卡片的 overflow:hidden 剪掉一截 */
+.article .content .fold-head:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: -3px;
+}
+
+.article .content .fold-body { overflow: hidden; }
+.article .content .fold-inner { padding: 1.15rem 1.5rem 1.35rem; }
+/* 段落自带 1.7em 底边距，末元素再留就把卡底撑出空档 */
+.article .content .fold-inner > :last-child { margin-bottom: 0; }
+
 /* ---------- 文章图片 ---------- */
 
 .article .content img {

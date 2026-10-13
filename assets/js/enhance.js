@@ -233,4 +233,46 @@
     });
     showBar();
   });
+
+  /* ---------- 折叠块：点开/收起的高度过渡 ---------- */
+  /* 原生 <details> 自己会开合，这里只把开合演成一段过渡。没有 WAAPI、
+     或系统偏好减少动效时直接不拦，交还原生的瞬时开合；
+     reduced-motion 里全局关掉了 transition，但 WAAPI 不受它管，得自己判 */
+  var FOLD_EASE = 'cubic-bezier(.22,.61,.36,1)'; /* 与 --ease 同一条曲线（base.css） */
+  document.querySelectorAll('.article .fold').forEach(function (d) {
+    var head = d.querySelector('.fold-head');
+    var body = d.querySelector('.fold-body');
+    if (!head || !body || !body.animate) return;
+
+    var anim = null;     /* 正在演的动画；演完置回 null */
+    var opening = false; /* 动画进行中的目标方向；空闲时以 d.open 为准 */
+
+    head.addEventListener('click', function (e) {
+      if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      e.preventDefault();
+      var want = anim ? !opening : !d.open; /* 演到一半再点 = 掉头 */
+      /* 取消前量下当前值：从眼前的样子接着演，不跳变 */
+      var fromH = anim ? body.getBoundingClientRect().height : body.offsetHeight;
+      var fromO = parseFloat(window.getComputedStyle(body).opacity) || 0;
+      if (anim) anim.cancel(); /* cancel 不触发 onfinish，不会误关 */
+      opening = want;
+      var opts = { duration: want ? 240 : 200, easing: FOLD_EASE };
+      if (want) {
+        d.open = true; /* 先亮出来，UA 才量得到高度 */
+        anim = body.animate(
+          [{ height: fromH + 'px', opacity: fromH < 2 ? 0 : fromO },
+           { height: body.scrollHeight + 'px', opacity: 1 }], /* 裁切着也报全高 */
+          opts);
+      } else {
+        anim = body.animate(
+          [{ height: fromH + 'px', opacity: fromO },
+           { height: '0px', opacity: 0 }],
+          opts);
+      }
+      anim.onfinish = function () {
+        anim = null;
+        if (!opening) d.open = false; /* 收完才真关，收起那段才看得见 */
+      };
+    });
+  });
 })();
