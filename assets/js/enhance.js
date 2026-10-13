@@ -37,6 +37,33 @@
       } catch (e) { /* 高亮失败则保持原样 */ }
     }
 
+    /* 行高亮（```js {3,5-7}）：构建端把归一后的行号表写在 pre[data-hl] 上，
+       这里往内层 code 画色带——每个区间一条淡金带 + 一条 2px 左金条。
+       用 lh 单位逐行对位（pre 的行高 1.75 无单位，1lh 就是一行高），不用监听 resize。
+       lh 单位有门槛：不支持时整段跳过——不探的话 position/size 被丢、
+       background-image 独活，整块代码会被染成一片 */
+    var hlSpec = pre.getAttribute('data-hl');
+    if (code && hlSpec && window.CSS && CSS.supports && CSS.supports('width', '1lh')) {
+      var imgs = [], sizes = [], poses = [];
+      /* 颜色留在 CSS（--hl-band / --hl-bar，见 components.css 的 pre[data-hl] 规则） */
+      var band = 'linear-gradient(var(--hl-band), var(--hl-band))';
+      var bar = 'linear-gradient(var(--hl-bar), var(--hl-bar))';
+      hlSpec.split(',').forEach(function (range) {
+        var m = range.split('-');
+        var from = parseInt(m[0], 10);
+        var to = m[1] ? parseInt(m[1], 10) : from;
+        var h = 'calc(1lh * ' + (to - from + 1) + ')';   // 带高 = 行数 × 一行高
+        var top = 'calc(1lh * ' + (from - 1) + ')';
+        imgs.push(bar, band);                            // 先 push 的在最上层：金条压住带
+        sizes.push('2px ' + h, '100% ' + h);
+        poses.push('0 ' + top, '0 ' + top);
+      });
+      code.style.backgroundImage = imgs.join(', ');
+      code.style.backgroundSize = sizes.join(', ');
+      code.style.backgroundPosition = poses.join(', ');
+      code.style.backgroundRepeat = 'no-repeat';
+    }
+
     var wrap = document.createElement('div');
     wrap.className = 'code-wrap';
     pre.parentNode.insertBefore(wrap, pre);

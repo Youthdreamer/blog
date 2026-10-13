@@ -6,9 +6,10 @@
 
    用法：node scripts/test-markdown.js   （或 npm test）
    覆盖 README 承诺的全部语法：粗体 / 斜体 / 删除线 / 行内代码 /
-   内外链接 / 图片（含图注）/ 引用 / 列表 / 标题 / 分隔线 /
-   围栏代码块 / 表格（GFM 对齐）/ 评分卡（```score，含列表徽标用的总分提取）/
-   折叠块（```fold，含锚点接续与长围栏），以及嵌套组合与转义安全。
+   内外链接 / 图片（含图注）/ 键帽（[[Ctrl+w]]）/ 引用 / 列表 / 标题 / 分隔线 /
+   围栏代码块（含行高亮 {3,5-7}）/ 表格（GFM 对齐）/ 评分卡（```score，含列表徽标用的总分提取）/
+   折叠块（```fold，含锚点接续与长围栏）/ 提示框（```note，含围栏误嵌提醒），
+   以及嵌套组合与转义安全。
    ============================================================ */
 
 const { inline, mdToHtml } = require('../lib/markdown');
@@ -74,6 +75,21 @@ eq('图片 ![a](u.png)',
 eq('图片含图注 ![a](u.png "注")',
   inline('![a](u.png "注")'),
   '<figure class="md-figure"><img src="u.png" alt="a" loading="lazy"><figcaption>注</figcaption></figure>');
+
+console.log('── 键帽（[[Ctrl+w]]）──────────────────────');
+
+eq('键帽 [[Ctrl+w]]',
+  inline('按 [[Ctrl+w]] 切窗口'),
+  '按 <kbd>Ctrl+w</kbd> 切窗口');
+eq('键帽内容转义 [[<C-w>]]',
+  inline('[[<C-w>]]'),
+  '<kbd>&lt;C-w&gt;</kbd>');
+eq('未闭合 [[ 原样输出', inline('[[没闭合'), '[[没闭合');
+eq('空键帽 [[]] 原样输出', inline('[[]]'), '[[]]');
+eq('行内代码里的 [[x]] 不误渲染', inline('`[[x]]`'), '<code>[[x]]</code>');
+eq('粗体里的键帽 **[[x]]**', inline('**[[x]]**'), '<strong><kbd>x</kbd></strong>');
+eq('键帽先到先得 [[a]](url)', inline('[[a]](url)'), '<kbd>a</kbd>(url)');
+eq('普通链接不受键帽影响 [a](url)', inline('[a](url)'), '<a href="url">a</a>');
 
 console.log('── 嵌套与组合（本次修复重点）──────────────');
 
@@ -303,13 +319,23 @@ eq('折叠块：目录里是外层那个', foldHead.headings[0].text, '外面的
 has('折叠块：内层标题的锚点接着外层编号', foldHead.html, '<h2 id="sec-1">藏起来的标题</h2>');
 has('折叠块：外层标题接在内层之后', foldHead.html, '<h2 id="sec-2">外面的标题</h2>');
 
-/* 评分提取：折叠里的卡是「合着的内容」，不当全篇评分 */
+/* 评分提取：折叠里的卡是「合着的内容」，不当全篇评分。
+   外层一律四反引号开栅——三反引号会被内层的 ```score 行提前关掉
+   （同长嵌套的歧义是 CommonMark 的固有规矩，构建日志会提醒误嵌，见文末用例） */
 const foldNoScore = quiet(() =>
-  mdToHtml('上面的正文\n\n```fold\n藏着结局\n\n```score\n9\n```\n```\n')).html.score;
-eq('折叠块：内层评分卡不算全篇评分', foldNoScore, null);
+  mdToHtml('上面的正文\n\n````fold\n藏着结局\n\n```score\n9\n```\n````\n'));
+eq('折叠块：内层评分卡不算全篇评分', foldNoScore.html.score, null);
+has('折叠块：四反引号开栅时折叠块真的渲染', foldNoScore.html.html,
+  '<details class="fold" data-reveal>');
+has('折叠块：四反引号开栅时内层评分卡真的渲染', foldNoScore.html.html,
+  '<div class="score-card" data-reveal>');
+eq('折叠块：四反引号开栅不带误嵌提醒', foldNoScore.warns.length, 0);
+
 const foldOuter = quiet(() =>
-  mdToHtml('```score\n8\n```\n\n```fold\n藏着\n\n```score\n9\n```\n```\n')).html.score;
-eq('折叠块：外层有卡时外层说了算', `${foldOuter.value}/${foldOuter.max}`, '8/10');
+  mdToHtml('```score\n8\n```\n\n````fold\n藏着\n\n```score\n9\n```\n````\n'));
+eq('折叠块：外层有卡时外层说了算', `${foldOuter.html.score.value}/${foldOuter.html.score.max}`, '8/10');
+eq('折叠块：外层与折叠里的评分卡各画一张',
+  (foldOuter.html.html.match(/class="score-card"/g) || []).length, 2);
 
 /* 长围栏（CommonMark 式长度匹配）：折叠正文里要写代码块，就用四反引号开栅 */
 const foldCode = mdToHtml('````fold\n展开看代码\n```js\nconst x = 1;\n```\n````\n').html;
@@ -319,6 +345,108 @@ has('折叠块：代码块落在折叠正文里', foldCode, '<div class="fold-in
 eq('长围栏：四反引号代码块里的三反引号原样显示',
   mdToHtml('````\n```\n代码里的围栏\n```\n````\n').html,
   '<pre><code class="lang-plaintext">```\n代码里的围栏\n```</code></pre>\n');
+
+console.log('── 提示框（```note 围栏） ─────────────────');
+
+block('提示框：整体形状（整段都是正文）',
+  '```note\n改配置前先**备份**。\n```\n',
+  L('<div class="note" data-reveal><p>改配置前先<strong>备份</strong>。</p>',
+    '</div>'));
+
+/* 列表前照常留空行——紧跟段落的 `- 甲` 是段落续行，全站块级语法同一规矩 */
+const noteRich = mdToHtml('```note\n注意事项：\n\n- 甲\n- 乙\n```\n').html;
+has('提示框：正文照常按 markdown 解析（列表）', noteRich, '<li>甲</li>');
+has('提示框：多段正文各成一段',
+  mdToHtml('```note\n第一段。\n\n第二段。\n```\n').html,
+  '</p>\n<p>第二段。</p>');
+
+const noteCode = mdToHtml('````note\n先备份再改：\n```bash\ncp config config.bak\n```\n````\n').html;
+has('提示框：四反引号开栅，正文里能安稳放代码块', noteCode,
+  '<pre><code class="lang-bash">cp config config.bak</code></pre>');
+has('提示框：代码块落在便笺内', noteCode, '<div class="note" data-reveal><p>先备份再改：</p>');
+
+const noteEmpty = quiet(() => mdToHtml('```note\n\n```\n').html);
+eq('提示框：一行内容都没有时整块不渲染', noteEmpty.html, '');
+eq('提示框：空围栏提醒一次', noteEmpty.warns.length, 1);
+const noteTitled = quiet(() => mdToHtml('```note\n\n```\n', { title: 'Hyprland 配置' }).html);
+eq('提示框：提醒带文章标题',
+  noteTitled.warns[0], '[build] 警告：《Hyprland 配置》的提示框：一行内容都没有，已跳过');
+eq('提示框：内容正常时不出声',
+  quiet(() => mdToHtml('```note\n提醒\n```\n')).warns.length, 0);
+
+/* 同折叠块：内层标题不进目录，但 sec-N 接着外层编号走；内层评分不当全篇评分 */
+const noteHead = mdToHtml('```note\n内层提醒\n## 便笺里的标题\n```\n\n## 外面的标题\n');
+eq('提示框：内层标题不进目录', noteHead.headings.length, 1);
+eq('提示框：目录里是外层那个', noteHead.headings[0].text, '外面的标题');
+has('提示框：内层标题的锚点接着外层编号', noteHead.html, '<h2 id="sec-1">便笺里的标题</h2>');
+has('提示框：外层标题接在内层之后', noteHead.html, '<h2 id="sec-2">外面的标题</h2>');
+
+const noteNoScore = quiet(() =>
+  mdToHtml('正文\n\n````note\n提醒\n\n```score\n9\n```\n````\n'));
+eq('提示框：内层评分卡不算全篇评分', noteNoScore.html.score, null);
+has('提示框：内层评分卡照常画在便笺里', noteNoScore.html.html, '<div class="score-card" data-reveal>');
+
+console.log('── 代码行高亮（围栏信息 {3,5-7}）──────────');
+
+block('行高亮：整体形状（行号表写进 data-hl）',
+  '```js {2}\n第一行\n第二行\n```\n',
+  L('<pre data-hl="2"><code class="lang-js">第一行',
+    '第二行</code></pre>'));
+
+block('行高亮：相连区间合并（{5,3-4,4} → 3-5）',
+  '```js {5,3-4,4}\n1\n2\n3\n4\n5\n```\n',
+  L('<pre data-hl="3-5"><code class="lang-js">1',
+    '2',
+    '3',
+    '4',
+    '5</code></pre>'));
+
+has('行高亮：倒着写的区间按正序算（{7-5} → 5-7）',
+  mdToHtml('```js {7-5}\n1\n2\n3\n4\n5\n6\n7\n```\n').html, 'data-hl="5-7"');
+has('行高亮：区间收边到末行（{2-99} → 2-3）',
+  mdToHtml('```js {2-99}\n1\n2\n3\n```\n').html, 'data-hl="2-3"');
+has('行高亮：碎片两侧留白照常认（{ 2 , 3-4 }）',
+  mdToHtml('```js { 2 , 3-4 }\n1\n2\n3\n4\n```\n').html, 'data-hl="2-4"');
+has('行高亮：无语言照常（``` {2}）',
+  mdToHtml('``` {2}\n1\n2\n```\n').html, '<pre data-hl="2"><code class="lang-plaintext">');
+
+/* 单行超出实际行数整条丢弃——不悄悄收到末行；全无效时提醒一句，块照常渲染 */
+const hlMiss = quiet(() =>
+  mdToHtml('```js {99}\n1\n2\n3\n```\n', { title: 'Hyprland 配置' }).html);
+has('行高亮：单行超界整条丢弃（不画线）', hlMiss.html, '<pre><code class="lang-js">');
+eq('行高亮：全无效时提醒一次', hlMiss.warns.length, 1);
+eq('行高亮：提醒的文案', hlMiss.warns[0],
+  '[build] 警告：《Hyprland 配置》的代码行高亮：围栏里的「{99}」没解析出行号，高亮已跳过');
+eq('行高亮：个别碎片写坏、还有效时静默',
+  quiet(() => mdToHtml('```js {3,x}\n1\n2\n3\n```\n').html).warns.length, 0);
+has('行高亮：坏碎片被略过，好行照样标',
+  mdToHtml('```js {3,x}\n1\n2\n3\n```\n').html, 'data-hl="3"');
+
+/* 行号表只归纯代码分支：特判围栏跟着的花括号照旧（与误嵌提醒同一套语义） */
+has('行高亮：score 围栏跟着的花括号照旧是评分卡',
+  mdToHtml('```score{8}\n9.5\n```\n').html, '<div class="score-card" data-reveal>');
+
+/* 围栏在递归里照常带行号表（提示框/折叠块/引用/列表里走同一条路） */
+has('行高亮：提示框里的代码块照常标行',
+  mdToHtml('````note\n先备份：\n```bash {1}\ncp a b\n```\n````\n').html,
+  '<pre data-hl="1"><code class="lang-bash">');
+
+console.log('── 围栏误嵌提醒（长围栏的缘由）───────────');
+
+/* 同长的带语言围栏会把外层的块提前关掉（CommonMark 的固有歧义，
+   解法定在「外层加长」）——构建日志提醒一句，别让内容悄悄缺一截 */
+const foldGuard = quiet(() =>
+  mdToHtml('```fold\n剧透警告\n结局是这样\n\n```note\n提醒\n```\n```\n', { title: '星际穿越' }));
+eq('误嵌提醒：折叠块里直接写 ```note 时提醒一次', foldGuard.warns.length, 1);
+eq('误嵌提醒：折叠块的文案', foldGuard.warns[0],
+  '[build] 警告：《星际穿越》的折叠块：正文里的 ```note 会提前把它关掉——要往里嵌围栏或代码块，外层得用更长的围栏开栅（四个反引号）');
+has('误嵌提醒：提醒归提醒，折叠块本身照常渲染', foldGuard.html.html, '<p>结局是这样</p>');
+
+const noteGuard = quiet(() =>
+  mdToHtml('```note\n提醒内容\n\n```fold\n折叠\n```\n```\n', { title: 'Hyprland 配置' }));
+eq('误嵌提醒：提示框里直接写 ```fold 时提醒一次', noteGuard.warns.length, 1);
+eq('误嵌提醒：提示框的文案', noteGuard.warns[0],
+  '[build] 警告：《Hyprland 配置》的提示框：正文里的 ```fold 会提前把它关掉——要往里嵌围栏或代码块，外层得用更长的围栏开栅（四个反引号）');
 
 console.log('──────────────────────────────────────────');
 console.log(`结果：${pass} 通过，${fail} 失败`);

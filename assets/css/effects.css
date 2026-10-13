@@ -243,6 +243,9 @@
   /* 折叠块：内边距与评分卡同节奏收一档 */
   .article .content .fold-head { padding: .92rem 1.15rem; }
   .article .content .fold-inner { padding: 1rem 1.15rem 1.2rem; }
+  /* 提示框：同理收一档，记号跟着对回第一行 */
+  .article .content .note { padding: 1.15rem 1.2rem 1.1rem 2.5rem; }
+  .article .content .note::before { top: 1.85rem; left: 1.05rem; }
 }
 
 /* ---------- 电影开幕（只在首页第 1 页，见 lib/views.js 的 hero） ---------- */

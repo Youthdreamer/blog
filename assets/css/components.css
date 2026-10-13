@@ -564,6 +564,20 @@
   color: var(--accent-br);
 }
 
+/* ---------- 键帽 ---------- */
+/* [[Ctrl+w]] → <kbd>：与行内代码同一族，但纸白不加金——键帽是硬件，不是代码 */
+.article kbd {
+  font-family: var(--mono);
+  font-size: .8em;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-bottom-width: 2px; /* 下沿厚一点：像一枚真按得下去的键 */
+  border-radius: 5px;
+  padding: .08em .42em .14em;
+  white-space: nowrap;
+}
+
 .article pre {
   margin: 2.2em 0;
   padding: 1.35rem 1.5rem;
@@ -579,6 +593,16 @@
   border: none;
   padding: 0;
   color: #cfc6b2;
+}
+/* 代码行高亮的底子（```js {3,5-7}，色带由 enhance.js 按 pre 的 data-hl 画）：
+   色带画在内层 code 上——pre 是滚动容器，画在 pre 上横向滚动时带不跟字走。
+   code 默认是行内盒、色带画不成行，撑成块；max-content 让带随长行一起滚 */
+.article pre[data-hl] code {
+  display: block;
+  width: max-content;
+  min-width: 100%;
+  --hl-band: rgba(185, 163, 124, .12);
+  --hl-bar: var(--accent-dim);
 }
 
 /* 代码高亮（highlight.js 自定义淡雅主题） */
@@ -891,6 +915,38 @@
 .article .content .fold-inner { padding: 1.15rem 1.5rem 1.35rem; }
 /* 段落自带 1.7em 底边距，末元素再留就把卡底撑出空档 */
 .article .content .fold-inner > :last-child { margin-bottom: 0; }
+
+/* ---------- 提示框 ---------- */
+
+/* 正文里的 ```note 围栏渲染成一张「旁批便笺」（解析见 lib/markdown.js）。
+   与评分卡、折叠块同一族：--surface 底、12px 圆角、金发丝描边，
+   底下再匀一层极淡的金晕。区别在记号：不占卡头，缩在左缘留白里——
+   一枚 ◆ 对着正文第一行，像写在书页边上的批注。
+   正文是作者自己的声音，纸白正体（斜体是引用块的腔调）。
+
+   选择器一律挂 .article .content 前缀，理由同评分卡与折叠块 */
+.article .content .note {
+  position: relative;
+  margin: 2.6em 0;
+  padding: 1.35rem 1.65rem 1.3rem 2.95rem;
+  background: linear-gradient(rgba(185, 163, 124, .05), rgba(185, 163, 124, .05)), var(--surface);
+  border: 1px solid rgba(185, 163, 124, .22);
+  border-radius: 12px;
+}
+
+/* 旁批记号：对着正文第一行——1.35rem 上内边距 + 半行高（行高 1.95 见 base.css） */
+.article .content .note::before {
+  content: "◆";
+  position: absolute;
+  top: 2.05rem;
+  left: 1.35rem;
+  font-size: .58rem;
+  line-height: 1;
+  color: var(--accent);
+}
+
+/* 段落自带 1.7em 底边距，末元素再留就把卡底撑出空档（同 .fold-inner 的收口） */
+.article .content .note > :last-child { margin-bottom: 0; }
 
 /* ---------- 文章图片 ---------- */
 
