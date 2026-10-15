@@ -16,6 +16,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { KINDS, PROSE_FENCES } = require('../lib/components');
 const { PATHS } = require('../lib/config');
 const { loadPosts, loadPages, listPostFiles, seriesOfPath } = require('../lib/content');
 const { mdToHtml, parseFrontmatter } = require('../lib/markdown');
@@ -76,7 +77,7 @@ function nearest(key) {
    文案是 lib/content.js 与 lib/markdown.js 里写死的，这里按关键词对号。
    DROP 的那几种是 loadPosts 内部那次 mdToHtml 发的组件提醒——逐文件一档
    还会原样报一遍，不丢就双报 */
-const DROP = ['的评分卡：', '的折叠块：', '的提示框：', '的代码行高亮：', '的脚注：', '的围栏代码块：'];
+const DROP = Object.values(KINDS).map((k) => `的${k}：`); // 组件 kind 表在 lib/components.js
 const BUILD_ERRORS = ['找不到对应的文章', '对上了多篇同名文章', '名字首尾有空白', '与文件夹名不一致', '的封面找不到', '已跳过'];
 const BUILD_WARNS = ['还是草稿，链接保持原样', '文件名含中文且未写 slug'];
 function classify(msg) {
@@ -107,9 +108,8 @@ function lineMapper(raw) {
    里子是正文，递归进去接着剥（与 mdToHtml 的递归同构）。没有收尾的围栏其内容
    本来就会被丢掉，这里也不当正文报 */
 
-/* 里子是正文的围栏——与 lib/markdown.js 的 NOTE_TYPES 对齐（note/tip/warn 同族）。
-   本文件自含一套与 mdToHtml 同构的扫描（不跨文件引依赖），改那边时记得同步这里 */
-const PROSE_FENCES = new Set(['fold', 'note', 'tip', 'warn']);
+/* 里子是正文的围栏（fold + 便笺家族）——名单在 lib/components.js（PROSE_FENCES）。
+   扫描逻辑仍是本文件自含一套（与 mdToHtml 同构），不引 markdown.js 的函数 */
 function proseLines(text, out, baseLine) {
   const lines = text.split('\n');
   let inCode = false;
