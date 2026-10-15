@@ -213,9 +213,14 @@ const state = {
   pin: false,
   toc: false,
   scoreBadge: false,
+  cover: '',
+  subject: '',
 };
 
-const FIELD_ORDER = ['title', 'slug', 'date', 'updated', 'tags', 'series', 'seriesOrder', 'summary', 'minutes', 'draft', 'pin', 'toc', 'scoreBadge'];
+const FIELD_ORDER = [
+  'title', 'slug', 'date', 'updated', 'tags', 'series', 'seriesOrder',
+  'summary', 'minutes', 'draft', 'pin', 'toc', 'scoreBadge', 'cover', 'subject',
+];
 const FIELD_LABEL = {
   title: '标题',
   slug: '文件名',
@@ -230,6 +235,8 @@ const FIELD_LABEL = {
   pin: '置顶',
   toc: '隐藏目录',
   scoreBadge: '隐藏卡片评分',
+  cover: '封面',
+  subject: '评分对象',
 };
 
 const fieldNum = (key) => FIELD_ORDER.indexOf(key) + 1;
@@ -363,6 +370,16 @@ async function askField(key) {
     state.scoreBadge = /^y/i.test(await ask(`${num}隐藏卡片评分？（y/N）`));
     return;
   }
+  if (key === 'cover') {
+    dim('  · 封面：评分墙上的海报图——md 同目录下的图片文件名（图放文章旁边），或完整的 http(s) 图片地址（图床外链）');
+    state.cover = await ask(`${num}封面（可空）`);
+    return;
+  }
+  if (key === 'subject') {
+    dim('  · 评分对象：评分墙一行显示的条目名——标题带副题时写评价对象本身（如「星际穿越」），留空回退用标题');
+    state.subject = await ask(`${num}评分对象（可空）`);
+    return;
+  }
 }
 
 /* 显示当前所有已填内容（确认页） */
@@ -448,6 +465,8 @@ function printFields() {
   say('    pin      true=置顶到列表最前');
   say('    toc      false=隐藏本文目录');
   say('    score_badge  false=列表卡片上不显示评分徽标（正文里的评分卡照常显示）');
+  say('    cover    封面图：评分墙的海报——md 同目录下的相对路径，或完整图片 URL（图床外链）');
+  say('    subject  评分墙的条目名（标题带副题时写评价对象本身，如 subject: 星际穿越）；缺省用标题');
   say('');
   say('  示例：');
   say('    ---');
@@ -464,6 +483,8 @@ function printFields() {
   say('    pin: true');
   say('    toc: false');
   say('    score_badge: false');
+  say('    cover: 海报.jpg');
+  say('    subject: 星际穿越');
   say('    ---');
   say('');
 }
@@ -517,13 +538,24 @@ async function main() {
   if (state.pin) lines.push('pin: true');
   if (state.toc) lines.push('toc: false');
   if (state.scoreBadge) lines.push('score_badge: false');
+  if (state.cover) lines.push(`cover: ${state.cover}`);
+  if (state.subject) lines.push(`subject: ${state.subject}`);
   lines.push('---', '', '');
 
   fs.writeFileSync(t.abs, lines.join('\n'));
 
   gold(`  ✓ 已创建 content/posts/${t.rel}`);
   if (t.folder) dim(`  · 「${t.folder}」这个文件夹就是那部合集，frontmatter 里无需 series:`);
-  dim(`  · 可选字段：updated / tags / series / series_order / summary / minutes / draft / pin / toc / score_badge · 完整说明：pnpm run fields`);
+  // 本地封面图要放在文章旁边才作数：没就位就提前说一声（不然只等构建期提醒）
+  if (state.cover && !/^https?:\/\//i.test(state.cover)) {
+    const img = path.resolve(path.dirname(t.abs), state.cover);
+    if (!fs.existsSync(img)) {
+      dim(
+        `  · 封面图还没就位：把 ${state.cover} 放到 content/posts/${t.folder ? t.folder + '/' : ''}（评分墙才会出海报）`,
+      );
+    }
+  }
+  dim(`  · 可选字段：updated / tags / series / series_order / summary / minutes / draft / pin / toc / score_badge / cover / subject · 完整说明：pnpm run fields`);
 
   /* 询问是否立即打开编辑器：先告知将使用哪个编辑器（默认不打开，避免侵入） */
   const editor = resolveEditor();
