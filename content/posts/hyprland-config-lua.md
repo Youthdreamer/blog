@@ -26,7 +26,9 @@ Hyprland 是一个用 C++ 编写的动态平铺式 Wayland 合成器，带来了
 ### 语法提示配置
 由于使用了成熟的 `Lua` ，同时为了更方便的配置官方给到了配置智能提示的方式。这里就直接引用官方的方法说明。
 
-> 前置说明，想要使用该智能提示，首先需要安装 `Lua` 的 `LSP` 服务器，这里推荐安装使用 `lua-language-server`。
+```note
+前置说明，想要使用该智能提示，首先需要安装 `Lua` 的 `LSP` 服务器，这里推荐安装使用 `lua-language-server`。
+```
 
 - 第一种 vscode 中配置
 在 `.vscode/` 文件夹下 创建名为 `settings.json` 的文件。
@@ -61,7 +63,7 @@ Hyprland 是一个用 C++ 编写的动态平铺式 Wayland 合成器，带来了
 改部分是变量部分，主要目的是设定我们在后续的配置中要使用的一些软件与快捷键，例如：终端、文件管理器、浏览器等等。方便后续同一修改。
 
 实际代码展示：
-```lua
+```lua {8,9,10}
 local terminal = "kitty"
 local yazi_filemanager = "yazi"
 local google_browser = "google-chrome-stable"
@@ -73,7 +75,9 @@ local mainMod = "SUPER + "
 local super_shift = "SUPER + SHIFT + "
 local super_alt = "SUPER + ALT + "
 ```
-> 细节说明，这里的快捷键变量后个 `+` 后面都应该有个空格，方便后续快捷键绑定时不会出错。
+```note
+细节说明，这里的快捷键变量后个 `+` 后面都应该有个空格，方便后续快捷键绑定时不会出错。
+```
 
 ### 第二部分——屏幕设置
 这里的配置需要根据官网文档说明与自身情况调整,[官方文档链接](https://wiki.hypr.land/0.56.0/Configuring/Basics/Monitors/)，这里我就以我个人只使用一个屏幕为例子展示代码：
@@ -259,14 +263,18 @@ hl.bind(mainMod .. "right", hl.dsp.focus({ direction = "r" }))
 hl.bind(mainMod .. "up", hl.dsp.focus({ direction = "u" }))
 hl.bind(mainMod .. "down", hl.dsp.focus({ direction = "d" }))
 ```
-> 请仔细查看，对应的调度器中的参数。
+```note
+请仔细查看，对应的调度器中的参数。
+```
 
 ## 注意事项
+```note
 - 文件拆分，在 `Lua` 中拆分文件，需要使用 `require` 来导入文件
 - 编写时注意看清楚，`{}` 的关系,尤其是 `hl.config` 中做通用配置，会嵌套许多的 `{}`，所以建议，将 `hl.config` 中的不同配置选项拆分着，更清楚。比如：杂项一部分，窗口模糊一部分等。
 - 动画方面，一定要根据博客中提供的动画树链接去查看对应的结构。
 - 建议跟随博客中说明的智能提示进行了配置同时正常运行，会提高配置编写体验。
 - 建议照猫画虎的使用博客中的一些代码，可帮助你更方便的编写配置。
+```
 
 ## 总结
 使用 `Lua` 配置，我认为是一次不错的选择，使用更成熟的 `Lua` 替代原来的 `hyprland.conf` 让配置更清晰，体验会更好，同时 `Lua` 的上手难度不是很高，用来做配置上不需要过多的 `Lua` 知识，甚至比 `neovim` 更容易配置。

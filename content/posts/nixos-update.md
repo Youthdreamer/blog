@@ -58,9 +58,11 @@ sudo nixos-rebuild switch --flake nixos配置文件地址#你的hostname
 ![系统重建时的警告提示](https://cdn.jsdelivr.net/gh/youthdreamer/image-bed/blog-image/2026-09/nixos-update-warning.webp "系统重建时的警告提示")
 
 ## 避坑指南
+```note
 - 注意本篇适用于使用 `flake` 配置系统的实操
 - 检查你的网络环境，确保你能链接到 `github`
 - 注意查看重建时的信息提示
 - 善用 **AI** 检查与解决错误
 - **Nixos** 系统更新可能会导致部分软件的配置失效，所以可能更新时间较长，记得吃饭，饿肚子更新系统会显的很命苦
 - 注意身体健康，按时睡觉，不要熬夜
+```

@@ -5,7 +5,7 @@ tags: [测试, markdown]
 slug: markdown-features-test
 summary: 当前 Markdown 解析器支持的全部语法与功能的测试文档
 minutes: 5
-draft: true
+# draft: true
 ---
 
 这是一篇功能测试文档，覆盖当前博客 Markdown 解析器支持的全部语法。页面顶部应出现目录（本文有 15 个小节）。文章首段的首字应显示"下沉 + 金色"效果（仅首段）。
