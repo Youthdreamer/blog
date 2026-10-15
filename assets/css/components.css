@@ -380,6 +380,196 @@
 .series-posts .idx:target { outline: none; }
 .series-posts .idx:target::before { transform: scaleY(1); }
 
+/* ---------- 评分墙（/scores.html）——个人豆瓣：一部合集一段，段内按总分排 ---------- */
+
+.wall-section { padding-top: 2.2rem; } /* 页头较矮，收紧空隙（同 .series-section） */
+.wall-group { margin: 0 0 3.6rem; }
+.wall-head {
+  display: flex;
+  align-items: baseline;
+  gap: .9rem;
+  margin: 0 0 .85rem;
+}
+.wall-head::before { content: "◇"; color: var(--accent-dim); font-size: .5rem; }
+.wall-name {
+  font-family: var(--serif);
+  font-size: 1.05rem;
+  color: var(--ink);
+  text-decoration: none;
+  transition: color .3s;
+}
+a.wall-name:hover { color: var(--accent-br); }
+.wall-meta {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: .9rem;
+  font-family: var(--mono);
+  font-size: .62rem;
+  letter-spacing: .18em;
+  color: var(--ink-3);
+}
+.wall-meta::before { content: ""; flex: 1; height: 1px; background: var(--line); }
+
+/* 条目是评分卡：像一面挂画的墙——有封面就是 2:3 海报 + 右下角分数徽标，
+   没封面就用分数排一张「数字海报」。海报下面一行「名次 + 标题」，日期收尾。
+   海报不另起盒子：走文章图片同一条框的规矩（发丝框 + 圆角，悬停漫金 + 投影）；
+   海报平时降饱和压暗、悬停回满色——彩色海报才不跟站里这身暗金打架，
+   也就是站里那句「于静默处，听见回响」 */
+.wall-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(205px, 1fr));
+  gap: .9rem;
+}
+.wall-card {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  text-decoration: none;
+  color: inherit;
+}
+.wc-poster {
+  position: relative;
+  display: block;
+  aspect-ratio: 2 / 3;
+  overflow: hidden;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: var(--bg-deep);
+  transition: border-color .3s var(--ease), box-shadow .3s var(--ease);
+}
+.wall-card:hover .wc-poster {
+  border-color: rgba(185, 163, 124, .45);
+  box-shadow: 0 10px 44px rgba(0, 0, 0, .5);
+}
+.wc-poster img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: saturate(.72) brightness(.85); /* 静默：悬停见 .wall-card:hover */
+  transition: filter .6s var(--ease), transform .8s var(--ease);
+}
+.wall-card:hover .wc-poster img { filter: none; transform: scale(1.045); }
+
+/* 分数徽标压在照片右下：深底 + 金发丝框——压在任何一张海报上都读得清 */
+.wc-badge {
+  position: absolute;
+  right: .55rem;
+  bottom: .55rem;
+  display: inline-flex;
+  align-items: baseline;
+  gap: .22em;
+  padding: .2em .6em .26em;
+  border: 1px solid rgba(185, 163, 124, .45);
+  border-radius: 6px;
+  background: rgba(12, 11, 9, .82);
+  backdrop-filter: blur(6px);
+  font-family: var(--serif);
+  font-size: 1.12rem;
+  line-height: 1;
+  letter-spacing: .02em;
+  color: var(--accent-br);
+}
+.wc-badge::before { content: "◇"; font-size: .52em; color: var(--accent-dim); }
+.wc-badge b { font-weight: 400; font-variant-numeric: lining-nums; }
+.wc-badge .wc-max { font-size: .44em; }
+
+/* 没封面：分数自己当海报——菱形、大号衬线分数、满分小字，竖着居中 */
+.wc-figure {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: .35rem;
+  background:
+    radial-gradient(ellipse at center, rgba(185, 163, 124, .07), transparent 68%),
+    var(--bg-deep);
+}
+.wc-figure::before {
+  content: "◇";
+  margin-bottom: .35rem;
+  color: var(--accent-dim);
+  font-size: .6rem;
+}
+.wc-figure b {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 2.9rem;
+  line-height: 1;
+  letter-spacing: .02em;
+  color: var(--accent-br);
+  font-variant-numeric: lining-nums;
+}
+.wc-figure .wc-max { font-size: .68rem; letter-spacing: .1em; }
+
+.wc-max {
+  font-family: var(--mono);
+  letter-spacing: .08em;
+  color: var(--accent-dim);
+}
+.wc-meta {
+  display: flex;
+  align-items: baseline;
+  gap: .6rem;
+  padding: .85rem 0 0;
+}
+.wc-rank {
+  flex: none;
+  font-family: var(--mono);
+  font-size: .58rem;
+  letter-spacing: .18em;
+  color: var(--ink-3);
+}
+.wc-title {
+  display: -webkit-box;
+  -webkit-line-clamp: 2; /* 两行封顶：同排卡片的日期才能对齐 */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: 3.2em;
+  font-family: var(--serif);
+  font-size: .95rem;
+  line-height: 1.6;
+  letter-spacing: .02em;
+  color: var(--ink);
+  transition: color .3s;
+}
+.wall-card:hover .wc-title { color: var(--accent-br); }
+.wc-date {
+  margin-top: .4rem;
+  padding: 0;
+  font-family: var(--mono);
+  font-size: .56rem;
+  letter-spacing: .16em;
+  color: var(--ink-3);
+}
+/* 短评（评分卡里那句评语）：像落款一样吊在日期下面，斜体衬线——
+   与正文评分卡的 .score-verdict 同一个语气；长了下摆三行封顶 */
+.wc-note {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-top: .45rem;
+  padding: 0;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: .84rem;
+  line-height: 1.7;
+  color: var(--ink-2);
+}
+@media (max-width: 640px) {
+  /* 窄屏两列：瓷砖收小一档 */
+  .wall-grid { grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: .7rem; }
+  .wall-card { padding-bottom: .75rem; border-radius: 6px; }
+  .wc-badge { right: .45rem; bottom: .45rem; font-size: .95rem; }
+  .wc-figure b { font-size: 2.2rem; }
+  .wc-meta { padding: .7rem 0 0; gap: .45rem; }
+  .wc-title { font-size: .88rem; }
+  .wc-date { margin-top: .3rem; padding: 0; }
+  .wc-note { padding: 0; font-size: .8rem; }
+}
+
 /* 文章页标签与合集角标：同一套药丸，合集那枚更实一档——它指路，标签只是归类 */
 .article-tags,
 .article-series {
@@ -470,6 +660,25 @@
 }
 .toc-label::before { content: "◇"; color: var(--accent-dim); font-size: .5rem; }
 .toc-label::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+/* 目录标签里的呼出提示：「按 t 随时呼出」——真心提示，不做彩蛋。
+   没脚本时（html 上没有 .js）藏起来，别让一句办不到的话挂着；
+   触屏没有 t 键，也藏（点顶部刻度条一样能开面板） */
+.toc-hint {
+  display: none;
+  background: none;
+  border: 0;
+  padding: 0;
+  font-family: var(--mono);
+  font-size: .58rem;
+  letter-spacing: .14em;
+  text-transform: none;
+  color: var(--ink-3);
+  cursor: pointer;
+  transition: color .3s;
+}
+.js .toc-hint { display: inline; }
+.toc-hint:hover { color: var(--accent-dim); }
+@media (hover: none) { .js .toc-hint { display: none; } }
 .toc a {
   display: block;
   font-family: var(--serif);
@@ -1598,3 +1807,98 @@
   transition: opacity .5s var(--ease), transform .5s var(--ease);
 }
 #toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+/* ---------- 阅读刻度（进度条上的章节尺）与目录面板 ----------
+   #ruler 是顶部的悬停/点击感应带，刻度是它的孩子——不能挂在 #progress 上：
+   那条的宽度从 0 走到 100%，刻度会被一起拉着跑。
+   长度不齐是在讲「读到哪一章了」：3px 未读 · 5px 读过 · 9px 当前 */
+
+#ruler {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 14px;
+  z-index: 201; /* 压过进度条（200），低于目录面板 */
+}
+#ruler.off { display: none; } /* 页面短到不用滚：不画尺 */
+.rl-tick {
+  position: absolute;
+  top: 3px;
+  width: 1px;
+  height: 3px;
+  background: var(--line-strong);
+  transition: height .35s var(--ease), background-color .35s var(--ease);
+}
+.rl-tick.is-passed { background: var(--accent-dim); height: 5px; }
+.rl-tick.is-on { background: var(--accent-br); height: 9px; }
+
+/* 悬停刻度的小签：「06 · 表格」——toast 的胶囊语言，压一线金缘指认刻度 */
+.rl-chip {
+  position: fixed;
+  top: 15px;
+  transform: translateX(-50%);
+  z-index: 202;
+  padding: .38rem .85rem;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-left: 2px solid var(--accent);
+  border-radius: 999px;
+  font-family: var(--mono);
+  font-size: .6rem;
+  letter-spacing: .14em;
+  color: var(--accent-br);
+  white-space: nowrap;
+  max-width: 60vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .25s var(--ease);
+}
+.rl-chip.show { opacity: 1; }
+
+/* t 呼出的目录浮层：挂在导航右下角的卡片（链接预览同一套卡片语言） */
+.tpanel {
+  position: fixed;
+  top: 3.9rem;
+  right: clamp(1.2rem, 5vw, 3rem);
+  z-index: 450; /* 高过 #to-top（400），低过链接预览（900）——碰不上面 */
+  width: min(320px, calc(100vw - 2.4rem));
+  max-height: min(70vh, 620px);
+  overflow: auto;
+  padding: 1.3rem 1.6rem 1.5rem;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-left: 2px solid var(--accent);
+  border-radius: 10px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, .55);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-8px);
+  transition: opacity .3s var(--ease), transform .3s var(--ease), visibility .3s;
+}
+.tpanel.show { opacity: 1; visibility: visible; transform: none; }
+.tpanel:focus { outline: none; } /* 面板自己收焦点（Esc/t/点外面就能走），不画焦点框 */
+.tp-head {
+  display: flex;
+  align-items: center;
+  gap: .9rem;
+  margin: 0 0 1.1rem;
+  font-family: var(--mono);
+  font-size: .62rem;
+  letter-spacing: .3em;
+  color: var(--ink-3);
+}
+.tp-head::before { content: "◇"; color: var(--accent-dim); font-size: .5rem; letter-spacing: 0; }
+.tp-head::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+.tp-hint { letter-spacing: .12em; white-space: nowrap; }
+/* 列表是文首目录的一份拷贝（.toc 的家法原样复用），只压掉外层留白 */
+.tpanel .toc { margin: 0; }
+.tpanel .toc a.is-cur { color: var(--accent-br); }
+.tpanel .toc a.is-cur .no { color: var(--accent); }
+
+@media (max-width: 640px) {
+  .tpanel { top: 3.7rem; } /* 窄屏导航矮一档（.95rem 内边距） */
+}
+@media print {
+  #ruler, .rl-chip, .tpanel, .toc-hint { display: none; }
+}

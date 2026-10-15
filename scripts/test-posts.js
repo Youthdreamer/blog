@@ -17,6 +17,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { seriesOfPath, pickSeries, loadPosts } = require('../lib/content');
+const { collectScoreGroups } = require('../lib/build');
 
 let pass = 0;
 let fail = 0;
@@ -222,6 +223,133 @@ try {
 } finally {
   fs.rmSync(tmp4, { recursive: true, force: true });
 }
+
+console.log('');
+console.log('评分数据分工（临时目录）');
+
+/* 评分墙与列表徽标共用一份 score；score_badge: false 只收徽标、不丢数据 */
+const tmp5 = fs.mkdtempSync(path.join(os.tmpdir(), 'youth-posts-score-'));
+const mk5 = (rel, text) => {
+  fs.mkdirSync(path.dirname(path.join(tmp5, rel)), { recursive: true });
+  fs.writeFileSync(path.join(tmp5, rel), text);
+};
+try {
+  mk5('scored.md', '---\ntitle: 有分\nslug: scored\ndate: 2026-01-01\n---\n\n```score\n9.50\n```\n');
+  mk5('hidden.md', '---\ntitle: 收徽标\nslug: hidden\ndate: 2026-01-02\nscore_badge: false\n---\n\n```score\n8.5\n```\n');
+  mk5('noted.md', '---\ntitle: 带评语\nslug: noted\ndate: 2026-01-03\n---\n\n```score\n9.2\n评语: 硬得漂亮，苦得甘心\n玩法: 9\n```\n');
+  mk5('plain.md', post('无分', 'plain'));
+  const { value: pts5 } = quiet(() => loadPosts(tmp5));
+  const b5 = Object.fromEntries(pts5.map((p) => [p.slug, p]));
+  eq('有评分卡：score 先格式化再给视图层（9.50 → 9.5）',
+    JSON.stringify(b5.scored.score), '{"value":"9.5","max":"10","note":""}');
+  eq('评分卡里的评语带进 score.note（评分墙的短评要用）',
+    b5.noted.score.note, '硬得漂亮，苦得甘心');
+  eq('没写评语：note 是空串（不是缺字段）', b5.scored.score.note, '');
+  eq('score_badge: false：score 照旧给出（评分墙要用）',
+    JSON.stringify(b5.hidden.score), '{"value":"8.5","max":"10","note":""}');
+  eq('score_badge: false → hideScoreBadge', b5.hidden.hideScoreBadge, true);
+  eq('不写 score_badge：不隐藏徽标', b5.scored.hideScoreBadge, false);
+  eq('没有评分卡：score 为 null', b5.plain.score, null);
+} finally {
+  fs.rmSync(tmp5, { recursive: true, force: true });
+}
+
+console.log('');
+console.log('评分对象名（临时目录）');
+
+/* subject：评分墙一行要的是评价对象本身，标题的副题不进卡面。
+   归一成字符串（空串 = 没写），布尔之类的写法不落到视图里（见 lib/content.js） */
+const tmp7 = fs.mkdtempSync(path.join(os.tmpdir(), 'youth-posts-subject-'));
+try {
+  fs.writeFileSync(
+    path.join(tmp7, 'subjected.md'),
+    post('空洞骑士：丝之歌——硬得漂亮', 'subjected', 'subject:  空洞骑士：丝之歌  \n'),
+  );
+  fs.writeFileSync(
+    path.join(tmp7, 'flag.md'),
+    post('写成了布尔', 'flag', 'subject: true\n'),
+  );
+  fs.writeFileSync(path.join(tmp7, 'plain.md'), post('没写对象', 'plain'));
+
+  const { value: pts7 } = quiet(() => loadPosts(tmp7));
+  const b7 = Object.fromEntries(pts7.map((p) => [p.slug, p]));
+  eq('subject：评分墙的条目名（首尾空白 trim 掉）', b7.subjected.subject, '空洞骑士：丝之歌');
+  eq('没写 subject：空串（视图回退到标题）', b7.plain.subject, '');
+  eq('subject 写成 true 之类的非字符串：归一成空串', b7.flag.subject, '');
+} finally {
+  fs.rmSync(tmp7, { recursive: true, force: true });
+}
+
+console.log('');
+console.log('封面解析（临时目录）');
+
+/* cover 写 md 同目录的相对路径：解析成 img/<slug>.<ext>（评分墙拿它当海报）。
+   文件不在就当没写、提醒一句——封面是可选字段，不该为一个笔误让构建倒下 */
+const tmp6 = fs.mkdtempSync(path.join(os.tmpdir(), 'youth-posts-cover-'));
+const mk6 = (rel, text) => {
+  fs.mkdirSync(path.dirname(path.join(tmp6, rel)), { recursive: true });
+  fs.writeFileSync(path.join(tmp6, rel), text);
+};
+try {
+  mk6('海报.jpg', '假装是图片');
+  mk6('draw/art.PNG', '假装是图片');
+  mk6('with-cover.md', post('带封面', 'with-cover', 'cover: 海报.jpg\n'));
+  mk6('with-sub.md', post('子目录封面', 'with-sub', 'cover: draw/art.PNG\n'));
+  mk6('missing.md', post('丢封面', 'missing', 'cover: nope.jpg\n'));
+  mk6('remote.md', post('图床封面', 'remote', 'cover: https://img.example.com/poster.jpg?v=2\n'));
+  mk6('no-cover.md', post('没封面', 'no-cover'));
+
+  const { value: pts6, warns: w6 } = quiet(() => loadPosts(tmp6));
+  const b6 = Object.fromEntries(pts6.map((p) => [p.slug, p]));
+  const w6all = w6.join('\n');
+
+  eq('cover 解析成站内输出路径（img/<slug>.<ext>）', b6['with-cover'].cover, 'img/with-cover.jpg');
+  eq('coverSrc 指向源文件（构建期照它拷贝）', b6['with-cover'].coverSrc, path.join(tmp6, '海报.jpg'));
+  eq('相对 md 所在路径解析，扩展名统一小写', b6['with-sub'].cover, 'img/with-sub.png');
+  eq('文件不在：cover 当没写', b6.missing.cover, null);
+  has('文件不在的提醒指名道姓', w6all, '《丢封面》');
+  has('提醒里带上写错的路径', w6all, 'nope.jpg');
+  eq('完整 URL：原样当 cover（图床外链）', b6.remote.cover, 'https://img.example.com/poster.jpg?v=2');
+  eq('外链没有源文件可拷：coverSrc 为 null', b6.remote.coverSrc, null);
+  eq('外链不提醒（远端的事构建期管不着）', w6all.includes('图床封面'), false);
+  eq('没写 cover：安静 null', b6['no-cover'].cover, null);
+} finally {
+  fs.rmSync(tmp6, { recursive: true, force: true });
+}
+
+console.log('');
+console.log('评分墙分组（纯函数，直接喂数据）');
+
+/* 甲合集：两篇 9.5（同分比日期）+ 一篇 4.5/5（折成十分制 9.0）+ 一篇无分；
+   乙合集整组无分；散篇一篇 8.2 在组外收尾 */
+const at = (slug, val, max, dateISO, series) => ({
+  slug,
+  dateISO,
+  series: series || '',
+  score: val == null ? null : { value: String(val), max: String(max) },
+});
+const scorePosts = [
+  at('jia-1', 9.5, 10, '2026-03-01', '甲合集'),
+  at('jia-2', 9.5, 10, '2026-05-01', '甲合集'),
+  at('jia-3', 4.5, 5, '2026-02-01', '甲合集'),
+  at('jia-4', null, null, '2026-01-01', '甲合集'),
+  at('yi-1', null, null, '2026-01-01', '乙合集'),
+  at('loose-1', 8.2, 10, '2026-01-01', ''),
+];
+const slist = [
+  ['甲合集', scorePosts.slice(0, 4)],
+  ['乙合集', scorePosts.slice(4, 5)],
+];
+const g = collectScoreGroups(scorePosts, slist);
+eq('没有分的文章不进组、整组没分就不出组', g.groups.map((x) => x.name).join('|'), '甲合集|');
+eq('组内按总分降序，同分日期新的在前，4.5/5 折成十分制参与排序',
+  g.groups[0].posts.map((p) => p.slug).join(','), 'jia-2,jia-1,jia-3');
+eq('组均分（折算后的平均，9.333… → 9.33）', g.groups[0].avgText, '9.33');
+eq('没归合集的收尾一组「散篇」（name 空串）',
+  `${g.groups[1].name}|${g.groups[1].posts[0].slug}`, '|loose-1');
+eq('总篇数与总均分（36.2 / 4）', `${g.count}|${g.avgText}`, '4|9.05');
+const empty = collectScoreGroups([], []);
+eq('一篇都没有：安静空态', `${empty.count}|${empty.avgText}|${empty.groups.length}`, '0||0');
 
 console.log('──────────────────────────────────────────');
 console.log(`结果：${pass} 通过，${fail} 失败`);
