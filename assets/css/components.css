@@ -787,6 +787,26 @@ a.wall-name:hover { color: var(--accent-br); }
   white-space: nowrap;
 }
 
+/* ---------- 行内高亮 ---------- */
+/* ==文字== → <mark>（金色记号笔）：底色是淡金、字仍是纸白——涂一层透明的
+   画法更含蓄但读起来费劲，这里选了「金底白字」这条明确的道。
+   ++文字++ → <u>（金色细下划线）：金色只走 text-decoration-color，不动字色。
+   解析与守卫见 lib/markdown.js 的 inline()；两个标记都不跨行 */
+.article mark {
+  background: rgba(185, 163, 124, .18);
+  color: inherit;
+  padding: .05em .15em;
+  border-radius: 4px;
+  box-decoration-break: clone; /* 记号笔跨行断行时，两段各自带圆角，不撕成一条 */
+  -webkit-box-decoration-break: clone;
+}
+.article u {
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: .18em; /* 离字远一点：下划线不咬住中文的笔画 */
+}
+
 /* ---------- 剧透遮罩 ---------- */
 /* ||……|| → <span class="spoiler">（解析见 lib/markdown.js）。一句话的剧透：
    默认模糊着，点一下 / 回车 / Tab 聚焦揭开，揭开就不再合上（enhance.js）。
@@ -875,6 +895,55 @@ a.wall-name:hover { color: var(--accent-br); }
 }
 .code-wrap:hover .copy-btn { opacity: 1; }
 .copy-btn:hover { color: var(--accent-br); border-color: rgba(185, 163, 124, .5); }
+
+/* ---------- 长代码折叠（>30 行自动收，见 enhance.js） ---------- */
+/* 收起态是纯 CSS 的 max-height 钳位：没 JS 时整块照常显示，不用管。
+   未展开时露 16 行 = 16 ×（.86rem × 1.75 = 1.505rem）+ 上下内衬 2.7rem
+   + 2px 边框（全局 border-box，见 base.css）。先给 rem 的精确值、再给 lh
+   版本——lh 单位不认的旧浏览器会把后一行整条判无效，自动退回前一行 */
+.code-wrap.is-long { padding-bottom: 2.15rem; } /* 按钮带：按钮不压代码，开/收同高不跳版 */
+.code-wrap.is-long pre {
+  /* 常开：overflow-x: auto 旁边的另一轴留 visible 会被折算成 auto，
+     动画中高度被压住时就会闪出竖滚动条 */
+  overflow-y: hidden;
+}
+.code-wrap.is-long:not(.is-open) pre {
+  max-height: calc(24.08rem + 2.7rem + 2px);
+  max-height: calc(16lh + 2.7rem + 2px);
+}
+/* 收口处的渐隐：最后几行化进底色。底部让开 12px 给横向滚动条，左右缩
+   1px 不吃到边框；展开时淡出、收起时淡入（跟着 is-open 走） */
+.code-wrap.is-long::after {
+  content: "";
+  position: absolute;
+  left: 1px; right: 1px;
+  bottom: calc(2.15rem + 12px);
+  height: 3.4rem;
+  background: linear-gradient(transparent, var(--bg-deep) 82%);
+  border-radius: 0 0 12px 12px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .25s var(--ease);
+}
+.code-wrap.is-long:not(.is-open)::after { opacity: 1; }
+.code-fold-btn {
+  position: absolute;
+  left: 50%;
+  bottom: .55rem;
+  transform: translateX(-50%);
+  z-index: 1; /* 压过底缘渐隐 */
+  font-family: var(--mono);
+  font-size: .6rem;
+  letter-spacing: .08em;
+  color: var(--ink-2);
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  padding: .32em .9em;
+  cursor: pointer;
+  transition: color .25s, border-color .25s;
+}
+.code-fold-btn:hover { color: var(--accent-br); border-color: rgba(185, 163, 124, .5); }
 
 .article ul, .article ol { margin: 0 0 1.7em; padding-left: 1.5em; }
 .article li { margin: .45em 0; }
@@ -1151,31 +1220,59 @@ a.wall-name:hover { color: var(--accent-br); }
 
 /* ---------- 提示框 ---------- */
 
-/* 正文里的 ```note 围栏渲染成一张「旁批便笺」（解析见 lib/markdown.js）。
-   与评分卡、折叠块同一族：--surface 底、12px 圆角、金发丝描边，
-   底下再匀一层极淡的金晕。区别在记号：不占卡头，缩在左缘留白里——
-   一枚 ◆ 对着正文第一行，像写在书页边上的批注。
+/* 正文里的 ```note / ```tip / ```warn 围栏渲染成一张「旁批便笺」（解析见
+   lib/markdown.js 的 noteBlock 与 NOTE_TYPES）。三型同一族：--surface 底、
+   12px 圆角、发丝描边 + 极淡的同色晕底，区别只在记号与色调（低饱和微色调；
+   只有 warn 上一点暖色——危险才配暖红）。记号不占卡头，缩在左缘留白里——
+   对着正文第一行，像写在书页边上的批注。
    正文是作者自己的声音，纸白正体（斜体是引用块的腔调）。
+     note ◆ 香槟金（本色） / tip ○ 橄榄 / warn △ 陶土
+
+   色调走四个自定义属性，默认值就是最初的金与 ◆——note 的渲染逐字节没变；
+   .is-tip / .is-warn 只改这四个变量。注意：三型的差异**只许**走自定义属性，
+   不要新增 .note.is-*::before 规则——那条的特异性会压过 effects.css 窄屏里
+   对 .note::before 的 top/left 修正，静默破坏窄屏记号对齐。
 
    选择器一律挂 .article .content 前缀，理由同评分卡与折叠块 */
 .article .content .note {
+  --note-wash: rgba(185, 163, 124, .05);
+  --note-line: rgba(185, 163, 124, .22);
+  --note-mark: var(--accent);
+  --note-glyph: "◆";
   position: relative;
   margin: 2.6em 0;
   padding: 1.35rem 1.65rem 1.3rem 2.95rem;
-  background: linear-gradient(rgba(185, 163, 124, .05), rgba(185, 163, 124, .05)), var(--surface);
-  border: 1px solid rgba(185, 163, 124, .22);
+  background: linear-gradient(var(--note-wash), var(--note-wash)), var(--surface);
+  border: 1px solid var(--note-line);
   border-radius: 12px;
 }
 
-/* 旁批记号：对着正文第一行——1.35rem 上内边距 + 半行高（行高 1.95 见 base.css） */
+/* 旁批记号：对着正文第一行——1.35rem 上内边距 + 半行高（行高 1.95 见 base.css）。
+   字形走变量，值必须是带引号的字符串（content 的自定义属性规矩） */
 .article .content .note::before {
-  content: "◆";
+  content: var(--note-glyph);
   position: absolute;
   top: 2.05rem;
   left: 1.35rem;
   font-size: .58rem;
   line-height: 1;
-  color: var(--accent);
+  color: var(--note-mark);
+}
+
+/* tip：提示、加分的做法——○ 橄榄（低饱和，绿感的金：守暗金不打眼） */
+.article .content .note.is-tip {
+  --note-wash: rgba(166, 172, 128, .05);
+  --note-line: rgba(166, 172, 128, .22);
+  --note-mark: #a6ac80;
+  --note-glyph: "○";
+}
+
+/* warn：警告、要避开的坑——△ 陶土（低饱和暖红；暖色只留给危险） */
+.article .content .note.is-warn {
+  --note-wash: rgba(192, 138, 109, .05);
+  --note-line: rgba(192, 138, 109, .22);
+  --note-mark: #c08a6d;
+  --note-glyph: "△";
 }
 
 /* 段落自带 1.7em 底边距，末元素再留就把卡底撑出空档（同 .fold-inner 的收口） */
@@ -1811,7 +1908,8 @@ a.wall-name:hover { color: var(--accent-br); }
 /* ---------- 阅读刻度（进度条上的章节尺）与目录面板 ----------
    #ruler 是顶部的悬停/点击感应带，刻度是它的孩子——不能挂在 #progress 上：
    那条的宽度从 0 走到 100%，刻度会被一起拉着跑。
-   长度不齐是在讲「读到哪一章了」：3px 未读 · 5px 读过 · 9px 当前 */
+   长度不齐是在讲「读到哪一节了」：章刻度 3px 未读 · 5px 读过 · 9px 当前，
+   节刻度同色矮一档（2/4/7）——尺上分得出层级 */
 
 #ruler {
   position: fixed;
@@ -1830,6 +1928,9 @@ a.wall-name:hover { color: var(--accent-br); }
 }
 .rl-tick.is-passed { background: var(--accent-dim); height: 5px; }
 .rl-tick.is-on { background: var(--accent-br); height: 9px; }
+.rl-tick.rl-sub { height: 2px; }          /* 节刻度（h3）：颜色随状态走，只矮一档 */
+.rl-tick.rl-sub.is-passed { height: 4px; }
+.rl-tick.rl-sub.is-on { height: 7px; }
 
 /* 悬停刻度的小签：「06 · 表格」——toast 的胶囊语言，压一线金缘指认刻度 */
 .rl-chip {
@@ -1901,4 +2002,9 @@ a.wall-name:hover { color: var(--accent-br); }
 }
 @media print {
   #ruler, .rl-chip, .tpanel, .toc-hint { display: none; }
+  /* 长代码折叠：纸上要整块（!important 是必需的——收起那条选择器多一个
+     :not()，特异性比这里高），按钮与渐隐都撤掉 */
+  .code-wrap.is-long pre { max-height: none !important; overflow-y: visible; }
+  .code-wrap.is-long { padding-bottom: 0; }
+  .code-wrap.is-long::after, .code-fold-btn { display: none; }
 }

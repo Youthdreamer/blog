@@ -5,10 +5,11 @@
    test-markdown.js — Markdown 解析器全语法回归测试
 
    用法：node scripts/test-markdown.js   （或 npm test）
-   覆盖 README 承诺的全部语法：粗体 / 斜体 / 删除线 / 行内代码 /
-   内外链接 / 图片（含图注）/ 键帽（[[Ctrl+w]]）/ 剧透遮罩（||……||）/ 引用 / 列表 / 标题 / 分隔线 /
-   围栏代码块（含行高亮 {3,5-7}）/ 表格（GFM 对齐）/ 评分卡（```score，含列表徽标用的总分提取）/
-   折叠块（```fold，含锚点接续与长围栏）/ 提示框（```note，含围栏误嵌提醒）/
+   覆盖 README 承诺的全部语法：粗体 / 斜体 / 删除线 / 行内高亮（==记号== / ++下划线++）/
+   行内代码 / 内外链接 / 图片（含图注）/ 键帽（[[Ctrl+w]]）/ 剧透遮罩（||……||）/
+   引用 / 列表 / 标题 / 分隔线 /
+   围栏代码块（含行高亮 {3,5-7}、漏关提醒）/ 表格（GFM 对齐）/ 评分卡（```score，含列表徽标用的总分提取）/
+   折叠块（```fold，含锚点接续与长围栏）/ 提示框（```note / ```tip / ```warn 三型，含围栏误嵌提醒）/
    脚注（[^1] 引用与定义汇总，含三种构建提醒），
    以及嵌套组合与转义安全。
    ============================================================ */
@@ -116,6 +117,45 @@ eq('行内代码里的 || 不误渲染', inline('`||不改||`'), '<code>||不改
 eq('键帽里的 || 不误渲染', inline('[[||]]'), '<kbd>||</kbd>');
 block('遮罩：段落里的一条', '结局：||他赢了||\n',
   '<p>结局：<span class="spoiler" tabindex="0">他赢了</span></p>\n');
+
+console.log('── 行内高亮（==记号== / ++下划线++）──────');
+
+eq('记号笔 ==文字==',
+  inline('这段 ==重点== 的话'),
+  '这段 <mark>重点</mark> 的话');
+eq('下划线 ++文字++',
+  inline('这段 ++轻声++ 的话'),
+  '这段 <u>轻声</u> 的话');
+eq('记号笔内容走行内语法 ==**粗**==',
+  inline('==**粗**=='),
+  '<mark><strong>粗</strong></mark>');
+eq('记号笔内容转义 ==<b>==',
+  inline('==<b>=='),
+  '<mark>&lt;b&gt;</mark>');
+eq('遮罩套记号笔 ||==x==||',
+  inline('||==x==||'),
+  '<span class="spoiler" tabindex="0"><mark>x</mark></span>');
+eq('记号笔套遮罩 ==||x||==',
+  inline('==||x||=='),
+  '<mark><span class="spoiler" tabindex="0">x</span></mark>');
+eq('未闭合 == 原样输出', inline('没闭合 == 原样'), '没闭合 == 原样');
+/* 开栅双守卫：前一个是 ASCII 单词字符不算开栅（同斜体 * 的规矩）、后紧邻
+   空格也不算；闭合前一字符是空格也不算闭合。正文里的 C++ / x==y 因此原样过
+   ——README「已知边界」一栏也写着这条 */
+eq('C++ 原样输出', inline('用 C++ 编写的合成器'), '用 C++ 编写的合成器');
+eq('两个 C++ 也不配对', inline('C++ 与 Rust++ 并提'), 'C++ 与 Rust++ 并提');
+eq('x==y==z 前有字母原样输出', inline('x==y==z'), 'x==y==z');
+eq('两侧留空格的 == 保持字面', inline('a == b == c'), 'a == b == c');
+eq('中文紧贴照常开：我++强调++一下C++',
+  inline('我++强调++一下C++'),
+  '我<u>强调</u>一下C++');
+/* 空标记四连当一个字面单位整段收走（同 |||| 的规矩），不与后文再配对 */
+eq('空记号笔 ==== 原样输出', inline('===='), '====');
+eq('空下划线 ++++ 原样输出', inline('++++'), '++++');
+eq('四连不与后文再配对 ====x====', inline('====x===='), '====x====');
+eq('行内代码里的 == 不误渲染', inline('`==不改==`'), '<code>==不改==</code>');
+block('记号笔：段落里的一条', '==重点==\n',
+  '<p><mark>重点</mark></p>\n');
 
 console.log('── 嵌套与组合（本次修复重点）──────────────');
 
@@ -372,7 +412,7 @@ eq('长围栏：四反引号代码块里的三反引号原样显示',
   mdToHtml('````\n```\n代码里的围栏\n```\n````\n').html,
   '<pre><code class="lang-plaintext">```\n代码里的围栏\n```</code></pre>\n');
 
-console.log('── 提示框（```note 围栏） ─────────────────');
+console.log('── 提示框（```note / ```tip / ```warn 三型）────');
 
 block('提示框：整体形状（整段都是正文）',
   '```note\n改配置前先**备份**。\n```\n',
@@ -411,6 +451,73 @@ const noteNoScore = quiet(() =>
   mdToHtml('正文\n\n````note\n提醒\n\n```score\n9\n```\n````\n'));
 eq('提示框：内层评分卡不算全篇评分', noteNoScore.html.score, null);
 has('提示框：内层评分卡照常画在便笺里', noteNoScore.html.html, '<div class="score-card" data-reveal>');
+
+/* 三型同族：note / tip / warn 只差 class 修饰与记号色调，解析、警惕、递归全同路。
+   note 无修饰类——输出与旧版逐字节一致（上面那段是回归钉，这条把类名明写死） */
+eq('提示框三型：note 不挂修饰类（逐字节同旧版）',
+  mdToHtml('```note\n提醒\n```\n').html,
+  '<div class="note" data-reveal><p>提醒</p>\n</div>\n');
+
+block('提示框三型：tip 整体形状（挂 is-tip）',
+  '```tip\n先看**文档**再动手。\n```\n',
+  L('<div class="note is-tip" data-reveal><p>先看<strong>文档</strong>再动手。</p>',
+    '</div>'));
+
+block('提示框三型：warn 整体形状（挂 is-warn）',
+  '```warn\n先备份再动手。\n```\n',
+  L('<div class="note is-warn" data-reveal><p>先备份再动手。</p>',
+    '</div>'));
+
+/* 与 note 共用一条实现：四反引号嵌代码块、行号表照常走 */
+const tipCode = mdToHtml('````tip\n先备份：\n```bash {1}\ncp a b\n```\n````\n').html;
+has('提示框三型：tip 里能嵌代码块（四反引号）', tipCode,
+  '<pre data-hl="1"><code class="lang-bash">cp a b</code></pre>');
+has('提示框三型：代码块落在 tip 便笺里', tipCode,
+  '<div class="note is-tip" data-reveal><p>先备份：</p>');
+
+/* 空块文案沿用「提示框」——check.js 的 DROP 认这串，
+   换 kind 会被 BUILD_ERRORS 的「已跳过」升级成构建错误 */
+const tipEmpty = quiet(() => mdToHtml('```tip\n\n```\n', { title: 'Hyprland 配置' }).html);
+eq('提示框三型：tip 空块不渲染', tipEmpty.html, '');
+eq('提示框三型：tip 空块提醒一次', tipEmpty.warns.length, 1);
+eq('提示框三型：空块文案归「提示框」', tipEmpty.warns[0],
+  '[build] 警告：《Hyprland 配置》的提示框：一行内容都没有，已跳过');
+eq('提示框三型：warn 空块同一文案',
+  quiet(() => mdToHtml('```warn\n\n```\n', { title: 'Hyprland 配置' }).html).warns[0],
+  '[build] 警告：《Hyprland 配置》的提示框：一行内容都没有，已跳过');
+
+const warnHead = mdToHtml('```warn\n坑在下面\n## 便笺里的标题\n```\n\n## 外面的标题\n');
+eq('提示框三型：warn 内层标题不进目录', warnHead.headings.length, 1);
+has('提示框三型：warn 内层锚点接着外层编号', warnHead.html, '<h2 id="sec-1">便笺里的标题</h2>');
+has('提示框三型：外层标题接在内层之后', warnHead.html, '<h2 id="sec-2">外面的标题</h2>');
+
+const tipNoScore = quiet(() =>
+  mdToHtml('正文\n\n````tip\n提醒\n\n```score\n9\n```\n````\n'));
+eq('提示框三型：tip 里的评分卡不算全篇评分', tipNoScore.html.score, null);
+has('提示框三型：tip 里的评分卡照常画在便笺里', tipNoScore.html.html,
+  '<div class="score-card" data-reveal>');
+
+/* 误嵌与漏关：文案照旧归「提示框」/「围栏代码块」 */
+const warnGuard = quiet(() =>
+  mdToHtml('```warn\n警告内容\n\n```note\n提醒\n```\n```\n', { title: 'Hyprland 配置' }));
+eq('提示框三型：warn 里直接嵌 ```note 时提醒一次', warnGuard.warns.length, 1);
+eq('提示框三型：误嵌提醒归「提示框」', warnGuard.warns[0],
+  '[build] 警告：《Hyprland 配置》的提示框：正文里的 ```note 会提前把它关掉——要往里嵌围栏或代码块，外层得用更长的围栏开栅（四个反引号）');
+
+const tipUnclosed = quiet(() =>
+  mdToHtml('````tip\n提醒\n\n```js\nconst a = 1\n````\n', { title: 'Hyprland 配置' }));
+eq('提示框三型：tip 里层漏关围栏照报', tipUnclosed.warns.length, 1);
+eq('提示框三型：里层漏关文案', tipUnclosed.warns[0],
+  '[build] 警告：《Hyprland 配置》的围栏代码块：```js 围栏没有关上，末尾 1 行内容被丢弃（补上关栅的 ``` 即可）');
+
+/* 边界：近名语言整词不匹配、大小写敏感、花括号照旧不管 */
+has('提示框三型：```tips 不是特判，照走代码块',
+  mdToHtml('```tips\n忠告\n```\n').html, '<code class="lang-tips">忠告</code>');
+has('提示框三型：```Tip 大小写敏感，照走代码块',
+  mdToHtml('```Tip\n忠告\n```\n').html, '<code class="lang-Tip">忠告</code>');
+has('提示框三型：tip 跟着的花括号照旧不管（行号表只认纯代码围栏）',
+  mdToHtml('```tip {2}\n提醒\n```\n').html,
+  '<div class="note is-tip" data-reveal><p>提醒</p>');
 
 console.log('── 代码行高亮（围栏信息 {3,5-7}）──────────');
 
@@ -473,6 +580,23 @@ const noteGuard = quiet(() =>
 eq('误嵌提醒：提示框里直接写 ```fold 时提醒一次', noteGuard.warns.length, 1);
 eq('误嵌提醒：提示框的文案', noteGuard.warns[0],
   '[build] 警告：《Hyprland 配置》的提示框：正文里的 ```fold 会提前把它关掉——要往里嵌围栏或代码块，外层得用更长的围栏开栅（四个反引号）');
+
+/* 漏关的围栏：内容整段悄悄丢掉是老毛病（构建不报错、正文少一截还查不出来），
+   现在点名——末尾 N 行就是丢掉的量 */
+const unclosed = quiet(() => mdToHtml('```lua\nlocal a = 1\nprint(a)\n', { title: 'Hyprland 配置' }));
+eq('漏关围栏：提醒一次', unclosed.warns.length, 1);
+eq('漏关围栏：文案', unclosed.warns[0],
+  '[build] 警告：《Hyprland 配置》的围栏代码块：```lua 围栏没有关上，末尾 3 行内容被丢弃（补上关栅的 ``` 即可）');
+eq('漏关围栏：内容确实没进正文', unclosed.html.html.includes('local a = 1'), false);
+eq('漏关围栏：关好的时候不提醒',
+  quiet(() => mdToHtml('```js\nconst a = 1;\n```\n', { title: 'Hyprland 配置' })).warns.length, 0);
+
+/* 递归层共用 ctx：提示框里层漏关（外层四反引号才嵌得进三反引号）也照报 */
+const unclosedInner = quiet(() =>
+  mdToHtml('````note\n提醒内容\n\n```js\nconst a = 1\n````\n', { title: 'Hyprland 配置' }));
+eq('漏关围栏：提示框里层漏关也点名', unclosedInner.warns.length, 1);
+eq('漏关围栏：里层文案', unclosedInner.warns[0],
+  '[build] 警告：《Hyprland 配置》的围栏代码块：```js 围栏没有关上，末尾 1 行内容被丢弃（补上关栅的 ``` 即可）');
 
 console.log('── 脚注（[^1] 引用与定义）─────────────');
 

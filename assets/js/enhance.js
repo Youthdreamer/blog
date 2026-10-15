@@ -1,5 +1,5 @@
 /* ============================================================
-   enhance.js — 正文增强：图片放大 + 代码高亮/复制 + 自定义视频播放器
+   enhance.js — 正文增强：图片放大 + 代码高亮/复制/长代码折叠 + 自定义视频播放器
    ============================================================ */
 (function () {
   'use strict';
@@ -41,7 +41,10 @@
     });
   });
 
-  /* ---------- 代码块：语法高亮 + 复制按钮 ---------- */
+  /* 开合动画的曲线（与 --ease 同一条，见 base.css）：长代码折叠与折叠块共用 */
+  var FOLD_EASE = 'cubic-bezier(.22,.61,.36,1)';
+
+  /* ---------- 代码块：语法高亮 + 复制按钮 + 长代码折叠 ---------- */
   document.querySelectorAll('.article pre').forEach(function (pre) {
     var code = pre.querySelector('code');
     if (code && window.hljs) {
@@ -110,6 +113,68 @@
         done();
       }
     });
+
+    /* 长代码折叠（>30 行，且没带行号表行高亮）：默认收成 16 行，点
+       「展开全部 · N 行」原地展开。收起态是纯 CSS 的 max-height 钳位
+       （见 components.css），没有 JS 时整块照常显示；这里只管按钮与动画。
+       行数照 textContent 数——hljs 只包 span、不动文本节点，跟在后面数
+       一样准 */
+    var lineCount = (pre.textContent || '').split('\n').length;
+    if (!pre.hasAttribute('data-hl') && lineCount > 30 && pre.animate) {
+      wrap.classList.add('is-long');
+
+      var foldBtn = document.createElement('button');
+      foldBtn.className = 'code-fold-btn';
+      foldBtn.type = 'button';
+      wrap.appendChild(foldBtn);
+
+      var foldAnim = null;     /* 正在演的动画；演完置回 null */
+      var foldOpening = false; /* 动画进行中的目标方向；空闲时以 is-open 为准 */
+
+      /* 按钮文案与 aria 立刻跟上点击方向；is-open 的加减交给各分支 */
+      var setFoldLabel = function (open) {
+        foldBtn.textContent = open ? '收起' : '展开全部 · ' + lineCount + ' 行';
+        foldBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      };
+      setFoldLabel(false);
+
+      foldBtn.addEventListener('click', function () {
+        var want = foldAnim ? !foldOpening : !wrap.classList.contains('is-open'); /* 演到一半再点 = 掉头 */
+        setFoldLabel(want);
+        /* 减动效：瞬时切换。不能学 .fold 的早退——那里的开合是原生 <details>
+           的活，这里没有兜底，早退了就永远收不起来 */
+        if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+          if (foldAnim) { foldAnim.cancel(); foldAnim = null; }
+          wrap.classList.toggle('is-open', want);
+          return;
+        }
+        var fromH = pre.getBoundingClientRect().height; /* cancel 前量：从眼前的样子接着演，不跳变 */
+        if (foldAnim) foldAnim.cancel(); /* cancel 不触发 onfinish，不会误收 */
+        foldOpening = want;
+        var toH;
+        if (want) {
+          wrap.classList.add('is-open'); /* 先摘掉钳位，才量得到全高 */
+          /* scrollHeight 不含边框：补上，终点才与展开后的自然高度严丝合缝 */
+          var cs = window.getComputedStyle(pre);
+          toH = pre.scrollHeight + (parseFloat(cs.borderTopWidth) || 0) + (parseFloat(cs.borderBottomWidth) || 0);
+          foldAnim = pre.animate([{ height: fromH + 'px' }, { height: toH + 'px' }],
+            { duration: 240, easing: FOLD_EASE });
+          foldAnim.onfinish = function () { foldAnim = null; };
+        } else {
+          /* 收：摘掉 is-open 量出钳位高度，同步补回来（这一段不绘制，不闪帧）；
+             动画演到钳位高度为止，演完才真收 */
+          wrap.classList.remove('is-open');
+          toH = pre.getBoundingClientRect().height;
+          wrap.classList.add('is-open');
+          foldAnim = pre.animate([{ height: fromH + 'px' }, { height: toH + 'px' }],
+            { duration: 200, easing: FOLD_EASE });
+          foldAnim.onfinish = function () {
+            foldAnim = null;
+            if (!foldOpening) wrap.classList.remove('is-open');
+          };
+        }
+      });
+    }
   });
 
   /* ---------- 自定义视频播放器（贴合站点风格） ---------- */
@@ -280,7 +345,6 @@
   /* 原生 <details> 自己会开合，这里只把开合演成一段过渡。没有 WAAPI、
      或系统偏好减少动效时直接不拦，交还原生的瞬时开合；
      reduced-motion 里全局关掉了 transition，但 WAAPI 不受它管，得自己判 */
-  var FOLD_EASE = 'cubic-bezier(.22,.61,.36,1)'; /* 与 --ease 同一条曲线（base.css） */
   document.querySelectorAll('.article .fold').forEach(function (d) {
     var head = d.querySelector('.fold-head');
     var body = d.querySelector('.fold-body');

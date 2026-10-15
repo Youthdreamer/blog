@@ -74,32 +74,41 @@
   var buf = '';
   var SECRET = 'youth';
 
-  /* ---------- 阅读刻度：进度条上的章节尺 / 悬停小签 / t 目录面板 / n·p 翻节 ----------
+  /* ---------- 阅读刻度：进度条上的章节尺 / 悬停小签 / t 目录面板 / n·p 翻章 ----------
      与文首目录同门槛：有 .article .toc 才有这一套。
-     刻度只画章（h2），但条目取自目录本身（而不是正文里的 h2[id]）：折叠块里的
-     标题在 DOM 里有 id、关着时高度却是零，照它画刻度会画出一枚点不动的死刻度。
+     刻度画章（h2）与节（h3）——节刻度矮一档，尺上分得出层级；n / p 仍只按章翻。
+     条目取自目录本身（而不是正文里的 h2[id]）：折叠块与便笺里的标题在 DOM 里
+     有 id、关着时高度却是零，照它画刻度会画出一枚点不动的死刻度。
      目录是唯一真相——面板就是它的一份拷贝。 */
   var tocNav = document.querySelector('.article .toc');
   if (tocNav) (function () {
     var doc = document.documentElement;
-    var SECTIONS = []; // 目录里的所有条目（h2 与 h3）——面板用
-    var H2S = [];      // 只有章（h2）——刻度与 n/p 用
+    var SECTIONS = []; // 目录里的所有条目（h2 与 h3）——刻度与面板都用
+    var H2S = [];      // 只有章（h2）——n/p 翻章用
     var byId = Object.create(null);
 
     tocNav.querySelectorAll('a[href^="#"]').forEach(function (a) {
       var el = document.getElementById(a.getAttribute('href').slice(1));
       if (!el) return;
       var noEl = a.querySelector('.no');
+      var sub = a.classList.contains('toc-sub');
       var item = {
-        id: el.id, el: el, tick: null, panelA: null, left: 0,
+        id: el.id, el: el, tick: null, panelA: null, left: 0, sub: sub,
         no: noEl ? noEl.textContent : '',
         title: (el.textContent || '').replace(/\s+/g, ' ').trim(),
       };
       SECTIONS.push(item);
       byId[item.id] = item;
-      if (!a.classList.contains('toc-sub')) H2S.push(item);
+      if (!sub) H2S.push(item);
     });
     if (!SECTIONS.length) return;
+
+    // 每个条目属于第几章（下标 → H2S 序号；章前的节记 -1）：n/p 沿它翻
+    var chapterOf = SECTIONS.map(function (item, i) {
+      if (!item.sub) return H2S.indexOf(item);
+      for (var j = i - 1; j >= 0; j--) if (!SECTIONS[j].sub) return H2S.indexOf(SECTIONS[j]);
+      return -1;
+    });
 
     // 跳转的落地余量：与 CSS 的 .article h2 { scroll-margin-top } 同源，读出来用，不写死
     var GAP = parseFloat(getComputedStyle(SECTIONS[0].el).scrollMarginTop);
@@ -131,13 +140,13 @@
     /* ----- 刻度尺 ----- */
 
     function buildRuler() {
-      if (H2S.length < 2) return; // 一枚刻度不成尺（面板照旧能用）
+      if (SECTIONS.length < 2) return; // 一枚刻度不成尺（面板照旧能用）
       layer = document.createElement('div');
       layer.id = 'ruler';
       layer.setAttribute('aria-hidden', 'true'); // 纯装饰：真目录在文首与 t 面板里
-      H2S.forEach(function (item) {
+      SECTIONS.forEach(function (item) {
         var t = document.createElement('i');
-        t.className = 'rl-tick';
+        t.className = 'rl-tick' + (item.sub ? ' rl-sub' : '');
         layer.appendChild(t);
         item.tick = t;
       });
@@ -150,7 +159,7 @@
     // 离指针最近的刻度（视口 px；命中容差 16px），没有就是 -1
     function nearestTick(x) {
       var best = -1, bestD = 16;
-      H2S.forEach(function (item, i) {
+      SECTIONS.forEach(function (item, i) {
         var d = Math.abs((item.left / 100) * doc.clientWidth - x);
         if (d <= bestD) { bestD = d; best = i; }
       });
@@ -168,7 +177,7 @@
         chip.className = 'rl-chip';
         document.body.appendChild(chip);
       }
-      chip.textContent = label(H2S[i]);
+      chip.textContent = label(SECTIONS[i]);
       chip.style.left = Math.min(doc.clientWidth - 48, Math.max(48, e.clientX)) + 'px';
       chip.classList.add('show');
     }
@@ -176,7 +185,7 @@
     function onLayerClick(e) {
       if (!fine) { togglePanel(); return; } // 触屏：顶部窄条一按 = 呼出目录
       var i = nearestTick(e.clientX);
-      if (i >= 0) jump(H2S[i]);
+      if (i >= 0) jump(SECTIONS[i]);
     }
 
     function jump(item) {
@@ -201,7 +210,7 @@
       head.appendChild(document.createTextNode('目录'));
       var hint = document.createElement('span');
       hint.className = 'tp-hint';
-      hint.textContent = fine ? 'n / p 翻节 · t / esc 收起' : '点标题跳转 · 点外面收起';
+      hint.textContent = fine ? 'n / p 翻章 · t / esc 收起' : '点标题跳转 · 点外面收起';
       head.appendChild(hint);
       inner.appendChild(head);
       // 列表直接拷一份文首目录：编号、层级、措辞天然同源，以后目录改了面板不掉队
@@ -222,12 +231,12 @@
         if (e.metaKey || e.ctrlKey || e.shiftKey) return; // 修饰键点击交给浏览器（新标签页打开）
         e.preventDefault();
         var item = byId[a.getAttribute('href').slice(1)];
-        if (item) { jump(item); closePanel(); }
+        if (item) jump(item); // 只跳转，不收起——收不收由用户自己定（t / esc / 点外面）
       });
     }
 
     function markPanel() {
-      var cur = activeIdx >= 0 ? H2S[activeIdx] : null;
+      var cur = activeIdx >= 0 ? SECTIONS[activeIdx] : null;
       SECTIONS.forEach(function (item) {
         if (item.panelA) item.panelA.classList.toggle('is-cur', item === cur);
       });
@@ -255,22 +264,22 @@
 
     function togglePanel() { if (panelOpen) closePanel(); else openPanel(); }
 
-    /* ----- 滚动状态：读过的刻度漫金，当前章亮一档 ----- */
+    /* ----- 滚动状态：读过的刻度漫金，当前节亮一档 ----- */
 
     function update() {
       var m = maxScroll(), y = pageY();
       var pct = m > 0 ? (y / m) * 100 : 0;
       var cur = -1;
-      H2S.forEach(function (item, i) {
+      SECTIONS.forEach(function (item, i) {
         var passed = item.left <= pct + 0.01;
         if (passed) cur = i;
         if (item.tick) item.tick.classList.toggle('is-passed', passed);
       });
-      // 末尾的章往往很短，读到底也等不到它被「越过」——到底就点亮它
-      if (m > 0 && y >= m - 1 && H2S.length) cur = H2S.length - 1;
+      // 末尾的节往往很短，读到底也等不到它被「越过」——到底就点亮它
+      if (m > 0 && y >= m - 1 && SECTIONS.length) cur = SECTIONS.length - 1;
       if (cur !== activeIdx) {
         activeIdx = cur;
-        H2S.forEach(function (item, i) {
+        SECTIONS.forEach(function (item, i) {
           if (item.tick) item.tick.classList.toggle('is-on', i === cur);
         });
         if (panelOpen) markPanel();
@@ -290,7 +299,7 @@
     function layout() {
       if (layer) {
         layer.classList.toggle('off', maxScroll() <= 0); // 页面短到不用滚就不画尺
-        H2S.forEach(function (item) {
+        SECTIONS.forEach(function (item) {
           item.left = pctOf(item);
           if (item.tick) item.tick.style.left = item.left.toFixed(2) + '%';
         });
@@ -304,15 +313,15 @@
       relayoutTimer = setTimeout(layout, 250);
     }
 
-    /* ----- 按键：t 开合面板，n / p 翻节 ----- */
+    /* ----- 按键：t 开合面板，n / p 翻章 ----- */
 
     function step(dir) {
       if (!H2S.length) return;
-      if (dir < 0 && activeIdx < 0) return; // 还在第一章之前，往回没有去处
-      var next = Math.min(Math.max(activeIdx + dir, 0), H2S.length - 1);
-      if (next === activeIdx) return; // 到头了，安静收场
-      closePanel();
-      jump(H2S[next]);
+      var ch = activeIdx >= 0 ? chapterOf[activeIdx] : -1; // 当前章序号（-1=章前）
+      if (dir < 0 && ch < 0) return; // 还在第一章之前，往回没有去处
+      var next = Math.min(Math.max(ch + dir, 0), H2S.length - 1);
+      if (next === ch) return; // 到头了，安静收场
+      jump(H2S[next]); // 面板开着也照样跳，不替用户收起
       showToast('§ ' + label(H2S[next]));
     }
 

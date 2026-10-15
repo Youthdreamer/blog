@@ -8,7 +8,7 @@ summary: 一份极简的 MPD + ncmpcpp 安装配置指南
 本文将在 arch 上 安装 mpd 和 ncmpcpp 做演示
 
 ## 前言
-听音乐，可以说是大部分人生活中必备的娱乐方式，甚至是生活习惯。那么我在平时编码时也会一直听歌。听歌的方式要么是在线流媒体，要么本地音乐播放。前者固然非常方便，但是会受限制于流媒体厂商。本地音乐就更自由些，但是麻烦的是音频文件需要自己去找。但是我认为这不是阻碍，毕竟这是一个海量信息的时代。有点类似于车载U盘，不是吗。
+听音乐，可以说是大部分人生活中必备的娱乐方式，甚至是生活习惯。那么我在平时编码时也会一直听歌。听歌的方式要么是在线流媒体，要么本地音乐播放。前者固然非常方便，但是会受限制于流媒体厂商。本地音乐就更自由些，但是麻烦的是音频文件需要自己去找。但是我认为这不是阻碍，毕竟这是一个海量信息的时代。有点类似于车载 U 盘，不是吗。
 
 ## 本地播放方案
 那么既然选择了本地音乐播放，那么就应该合适的方式去实现。非常有名的 mpv 既可以播放视频也可以播放音乐，但是它没有界面，仅仅只是单纯的播放音乐，显然这只适合想随手播放歌曲听一听，简单但是纯粹。但是如果本地有大量歌曲，并需要长期管理，我觉得这就并不是适合了，所以我选择了经典组合 **mpd** 与 **ncmpcpp**。mpd 作为后台进程，ncmpcpp 作为前端显示，另外 ncmpcpp 是 TUI 这非常符合我的习惯。
@@ -47,14 +47,14 @@ systemctl --user status mpd
 
 mpd 与 ncmpcpp 可配置的选项很多，这里我只给出最少可运行的配置，也是我目前正在使用的配置，非常简单。其实主要 mpd 的服务跑起来就基本成功。
 
-> 关于 二者的 详细配置文档，我先放在这里。[mpd配置说明](https://mpd.readthedocs.io/en/stable/user.html#configuration) 与 [ncmpcpp配置说明](https://github.com/ncmpcpp/ncmpcpp/blob/master/doc/config)
+> 关于 二者的 详细配置文档，我先放在这里。[mpd 配置说明](https://mpd.readthedocs.io/en/stable/user.html#configuration) 与 [ncmpcpp 配置说明](https://github.com/ncmpcpp/ncmpcpp/blob/master/doc/config)
 
 想更深入的配置请查看官方文档编写。这里先说一下，二者的配置地址，分别为：
 
 - **~/.config/mpd/mpd.conf**
 - **~/.config/ncmpcpp/config**
 
-这里展示我的配置:
+这里展示我的配置：
 
 - **mpd**
 ```config

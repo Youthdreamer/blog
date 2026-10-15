@@ -35,6 +35,7 @@
           echo "  pnpm run serve    # 静态预览"
           echo "  pnpm run stop     # 停止开发服务器"
           echo "  pnpm run fields   # frontmatter 字段参考"
+          echo "  pnpm run check    # 文章体检（内容 lint：语法/字段/死链拦错误，排版小瑕提醒）"
           echo ""
         '';
       };

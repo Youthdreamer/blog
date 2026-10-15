@@ -47,6 +47,11 @@ body {
   font-size: 1rem;
   line-height: 1.95;
   letter-spacing: .02em;
+  /* 中文排版润色（渐进增强，见 README）：行首的「（『类标点压半角；
+     text-autospace 的规范初值就是 normal（中英之间自动留隙），写上只把
+     意图落在明处——浏览器铺开后正文自动生效，代码里要关掉（见下） */
+  text-autospace: normal;
+  text-spacing-trim: trim-start;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   overflow-x: hidden;
@@ -64,6 +69,13 @@ body {
   user-select: text;
   -webkit-user-select: text;
   -moz-user-select: text;
+}
+
+/* 代码与键帽：等宽原样。行首全角标点不压（space-all）；将来浏览器默认
+   给中英加隙时也不进代码——两个属性都会继承，得显式关掉 */
+pre, code, kbd {
+  text-autospace: no-autospace;
+  text-spacing-trim: space-all;
 }
 
 /* 颗粒质感：让深色不闷 */

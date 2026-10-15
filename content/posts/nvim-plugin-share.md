@@ -8,7 +8,7 @@ summary: 分享一些我个人常用的neovim插件。
 
 简单分享，不做完整插件使用教程，下面就以我在 **neovim 0.12 **的使用体验做推荐，并某些插件在 **0.12** 版本才有更好的效果，推荐在 **0.12** 中使用。
 
-## UI类插件
+## UI 类插件
 
 - **颜色插件**
 
@@ -68,7 +68,7 @@ https://github.com/akinsho/bufferline.nvim
 
 
 ## 编辑器增强类插件
-其实这一类的插件也有不少，但是我个人偏向于简洁的neovim配置，所以这里我只推荐一个插件。
+其实这一类的插件也有不少，但是我个人偏向于简洁的 neovim 配置，所以这里我只推荐一个插件。
 
 - **文件管理**
 `oil.nvim`
@@ -155,10 +155,10 @@ https://github.com/DrKJeff16/project.nvim
 https://github.com/kylechui/nvim-surround
 ```
 
-- **git功能集成**
+- **git 功能集成**
 `gitsigns.nvim`
 
-提供了非常的 git 功能在编辑器中显示，我个人尤其喜欢侧边的git 状态栏，还有其他很实用的功能可以探索。
+提供了非常的 git 功能在编辑器中显示，我个人尤其喜欢侧边的 git 状态栏，还有其他很实用的功能可以探索。
 
 
 安装地址：
@@ -177,7 +177,7 @@ https://github.com/lewis6991/gitsigns.nvim
 https://github.com/folke/which-key.nvim
 ```
 
-## nvim内置插件
+## nvim 内置插件
 
 在 `Neovim 0.12` 版本中，存在了几个内置的插件，例如：`difftool` `undotree` 等。这里我推荐 `undotree`
 
@@ -202,4 +202,4 @@ end, { desc = "Undotree" })
 
 ## 尾声
 
-上面所推荐的全部插件都在我个人的的neovim配置([**nvim-pack**](https://github.com/Youthdreamer/nvim-pack))中使用，是一整套完整且简洁舒适的插件选择。
+上面所推荐的全部插件都在我个人的的 neovim 配置([**nvim-pack**](https://github.com/Youthdreamer/nvim-pack))中使用，是一整套完整且简洁舒适的插件选择。

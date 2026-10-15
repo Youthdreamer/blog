@@ -21,7 +21,7 @@ summary: 演示如何更新 nixos
 
 ## 更新实操
 
-### 更新flake
+### 更新 flake
 这里就以 **flake** 中为稳定版本的 Nixos 来做演示，比如从**25.11**升级到**26.05**版本的 Nixos。
 
 其中 **flake** 的 **input** 内容如下图：
