@@ -119,6 +119,7 @@ try {
   mk('影评 /spacey.md', post('空白文件夹', 'spacey'));
   mk('_草稿/wip.md', post('草稿', 'wip'));
   mk('_草稿/draft2.md', post('草稿二', 'draft2', 'draft: true\n'));
+  mk('draft3.md', post('草稿三', 'draft3', 'draft: true\n')); // 根下的真草稿：默认隐藏，预览构建才现身
   mk('深度/旧稿/x.md', post('太深', 'deep'));
 
   const { value: posts, warns } = quiet(() => loadPosts(tmp));
@@ -143,6 +144,19 @@ try {
   eq('一致时不刷屏', allWarns.includes('Neovim教程'), false);
   eq('私用文件夹不提醒', allWarns.includes('_草稿'), false);
   eq('非 .md 不提醒', allWarns.includes('cover.png'), false);
+
+  /* 草稿预览（dev 构建传 includeDrafts，见 dev.js）：草稿照常解析、带 draft: true
+     返回，由 lib/build.js 分流成单页；私用文件夹是另一回事，连预览构建也不收 */
+  const { value: preview } = quiet(() => loadPosts(tmp, { includeDrafts: true }));
+  const pBySlug = Object.fromEntries(preview.map((p) => [p.slug, p]));
+  eq(
+    'includeDrafts：草稿在列（私用文件夹仍不在）',
+    preview.map((p) => p.slug).sort().join(','),
+    'draft3,dune,guide,interstellar,root-post,spacey',
+  );
+  eq('草稿带 draft: true 标记（视图据此上横幅）', pBySlug.draft3.draft, true);
+  eq('非草稿不挂 draft 标记', pBySlug['root-post'].draft, undefined);
+  eq('草稿正文照常渲染（预览页可读）', pBySlug.draft3.html.includes('<p>正文</p>'), true);
 
   /* 跨文件夹重名：URL 是扁平的，构建必须拦住（报错要能指出是哪个文件夹） */
   const tmp2 = fs.mkdtempSync(path.join(os.tmpdir(), 'youth-posts-dup-'));

@@ -63,8 +63,9 @@ function serveFile(res, urlPath) {
       const ext = path.extname(file);
       let body = data;
       if (ext === '.html') {
-        // 开发模式：注入实时刷新脚本
-        body = data.toString().replace('</body>', RELOAD_SCRIPT + '</body>');
+        // 开发模式：注入实时刷新脚本 + 草稿入口挂件（都只在服务时进页面，
+        // 磁盘上的构建产物保持干净）
+        body = data.toString().replace('</body>', RELOAD_SCRIPT + draftsWidget() + '</body>');
       }
       res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream' });
       res.end(body);
@@ -91,8 +92,55 @@ const server = http.createServer((req, res) => {
   serveFile(res, url);
 });
 
-/* 首次构建 */
-build();
+/* —— 草稿入口（build 的回值，见 lib/build.js）——
+   草稿不进任何列表，本地总要有个随手可点的地方。入口一律走「服务时注入」，
+   与热刷新脚本同一条路：构建产物里一个字都不加，浏览器里看到的正式页面
+   与发布版逐字节一致——预览的正是将来发布的东西 */
+
+let draftList = []; // 每次构建后刷新，服务时注入挂件用
+
+/* 左下角小挂件：一颗「草稿 · N」胶囊，点开是可滚动的草稿清单（草稿多了也不怕）。
+   标题进 JSON 再 escape 掉 <，免得 </script> 之类把注入的脚本截断 */
+function draftsWidget() {
+  if (!draftList.length) return "";
+  const data = JSON.stringify(draftList).replace(/</g, "\\u003c");
+  return `<style>
+#__drafts{position:fixed;left:16px;bottom:16px;z-index:9999;font:12px/1.7 ui-monospace,SFMono-Regular,Menlo,monospace}
+#__drafts button{cursor:pointer;padding:5px 14px;border:1px solid rgba(185,163,124,.5);border-radius:999px;background:rgba(23,21,18,.94);color:#d8c39a;font:inherit;letter-spacing:.14em}
+#__drafts button:hover{border-color:#d8c39a}
+#__drafts ul{list-style:none;margin:0 0 8px;padding:8px 10px;max-height:50vh;overflow:auto;border:1px solid rgba(185,163,124,.35);border-radius:10px;background:rgba(18,16,14,.96);box-shadow:0 12px 40px rgba(0,0,0,.55)}
+#__drafts li+li{margin-top:8px}
+#__drafts a{color:#d8c39a;text-decoration:none;border-bottom:1px solid rgba(185,163,124,.35)}
+#__drafts a:hover{color:#b9a37c}
+#__drafts .d_slug{display:block;color:#6f695d;font-size:10px;letter-spacing:.08em;margin-top:2px}
+</style>
+<script>(function(){var ds=${data};
+if(!ds.length)return;
+var w=document.createElement('div');w.id='__drafts';
+var b=document.createElement('button');b.type='button';b.textContent='草稿 · '+ds.length;
+var u=document.createElement('ul');u.hidden=true;
+ds.forEach(function(d){var li=document.createElement('li'),a=document.createElement('a'),s=document.createElement('span');
+a.href='/post/'+d.slug+'.html';a.textContent=d.title;s.className='d_slug';s.textContent='/post/'+d.slug+'.html';
+a.appendChild(s);li.appendChild(a);u.appendChild(li);});
+b.addEventListener('click',function(){u.hidden=!u.hidden;});
+w.appendChild(u);w.appendChild(b);document.body.appendChild(w);})();</script>`;
+}
+
+/* 终端里直接可点；草稿一多只列前六条，看全的走左下角挂件 */
+function printDrafts(drafts) {
+  const head = drafts.slice(0, 6);
+  for (const d of head) {
+    console.log(`[dev] 草稿入口：http://127.0.0.1:${PORT}/post/${d.slug}.html`);
+  }
+  if (drafts.length > head.length) {
+    console.log(`[dev] 另有 ${drafts.length - head.length} 篇草稿：页面左下角的挂件里看全`);
+  }
+}
+
+/* 首次构建。previewDrafts：草稿也出一张单页（带草稿横幅、noindex），
+   本地才对得起「写完先看看」——一切列表口径不变，见 lib/build.js */
+const initial = build({ previewDrafts: true });
+draftList = initial.drafts;
 
 /* 监听 + 防抖重建 */
 let timer = null;
@@ -102,7 +150,8 @@ function schedule() {
     try {
       // 分割线：连续多次重建的日志之间清晰分界
       console.log('\n' + '─'.repeat(46) + '  ' + new Date().toLocaleTimeString());
-      build();
+      draftList = build({ previewDrafts: true }).drafts;
+      printDrafts(draftList);
       broadcast();
       console.log(`[dev] ✓ 已重新构建 ${new Date().toLocaleTimeString()}`);
     } catch (e) {
@@ -133,5 +182,7 @@ function cleanupPid() {
 server.listen(PORT, () => {
   console.log(`[dev] 开发服务器已启动 → http://127.0.0.1:${PORT}`);
   console.log('[dev] 编辑 content/ 或 assets/ 下的文件，保存后浏览器自动刷新');
+  console.log('[dev] 草稿预览：开 · draft: true 的文章照常出单页，不进任何列表');
+  printDrafts(initial.drafts);
   console.log(`[dev] 停止：pnpm run stop（PID ${process.pid}）`);
 });

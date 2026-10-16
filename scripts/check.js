@@ -7,7 +7,9 @@
    讲究」的地方提醒一句。两类口径：
 
      错误（✗，退出码 1）——组件/围栏语法、frontmatter 字段与类型、死链、封面
-     提醒（·）          ——中文排版、落单的高亮标记、疑似被当键帽的 Lua 长字符串
+     提醒（·）          ——中文排版、落单的高亮标记、疑似被当键帽的 Lua 长字符串、
+                          阅读时长与篇幅明显不符 / 未来的日期（这两条草稿不算）、
+                          标签近似拼写（归一后撞页或只差一个字符）
 
    体检是内容 lint，与代码回归是两件事：不挂在 pnpm test 里。
    用法：node scripts/check.js [postsDir]   （或 pnpm run check）
@@ -20,7 +22,7 @@ const { KINDS, PROSE_FENCES } = require('../lib/components');
 const { PATHS } = require('../lib/config');
 const { loadPosts, loadPages, listPostFiles, seriesOfPath } = require('../lib/content');
 const { mdToHtml, parseFrontmatter } = require('../lib/markdown');
-const { slugify } = require('../lib/utils');
+const { slugify, readMinutes } = require('../lib/utils');
 
 /* ---------- 终端配色（仅 TTY 时启用，管道输出保持纯净，同 new.js） ---------- */
 const TTY = !!process.stdout.isTTY;
@@ -219,7 +221,7 @@ function checkPost(base, rel, slugs, seriesSlugs, item) {
   const title = meta.title || path.basename(rel, '.md');
   const lineOf = lineMapper(raw);
 
-  checkFrontmatter(raw, meta, item);
+  checkFrontmatter(raw, meta, body, item);
 
   // 组件 / 围栏语法：与构建同一套 ctx，提醒都是错误级（写坏的内容不该流出）
   const render = run(() => mdToHtml(body, { title }));
@@ -265,17 +267,20 @@ function checkPost(base, rel, slugs, seriesSlugs, item) {
   item.warns.sort((a, b) => a.line - b.line);
 }
 
-function checkFrontmatter(raw, meta, item) {
+function checkFrontmatter(raw, meta, body, item) {
   const end = raw.indexOf('---', raw.indexOf('---') + 3);
   const E = (line, text) => item.errors.push({ line, text });
   const W = (line, text) => item.warns.push({ line, text });
+  // 站点级标签近似检查（checkTagCloseness）取用的内部字段；不参与输出
+  item.tagLine = 0;
+  item.tagList = Array.isArray(meta.tags) ? meta.tags.map(String) : [];
   if (!raw.startsWith('---') || end === -1) {
     W(1, '没有 frontmatter（--- 包起来的头部）：标题会退回文件名，日期、标签都没有');
     return;
   }
   const seen = new Map(); // 字段 → 行号
   raw.slice(3, end).split('\n').forEach((line, idx) => {
-    const no = idx + 2; // 首行 --- 是文件第 1 行
+    const no = idx + 1; // 行号：slice(3) 从头一个换行符起，空段对应首行 ---，故 +1 即文件行号
     const t = line.trim();
     if (!t || t.startsWith('#')) return; // 空行与注释行（# cover: 这种）
     const m = line.match(/^([\w]+):\s*(.*)$/);
@@ -312,15 +317,43 @@ function checkFrontmatter(raw, meta, item) {
       E(no, `${key}: 只认 true / false（「${rawVal}」是字符串，按真值走——多半不同意）`);
     }
   });
+  item.tagLine = seen.get('tags') || 0; // ③ 报行号用（tagList 见函数开头）
   // 日期：写了但解不出 → 构建会直接崩（content.js 里 toISOString 见 Invalid Date 就抛）
   for (const key of ['date', 'updated']) {
     const v = meta[key];
     if (v === undefined || v === '') continue;
-    if (isNaN(new Date(v).getTime())) {
+    const t = new Date(v).getTime();
+    if (isNaN(t)) {
       E(seen.get(key) || 2, `${key}: 解析不出日期（「${v}」），构建会直接报错`);
+      continue;
+    }
+    // ② date 写在未来：站点不做定时发布（构建照发、列表日期就是未来），多半是
+    // 笔误。today 取本地日历日再比字符串——toISOString 的「今天」是 UTC 的，
+    // 东八区傍晚会差一天而误报。草稿豁免（排期中的稿子），updated 不查（克制）
+    if (key === 'date' && !meta.draft) {
+      const iso = new Date(t).toISOString().slice(0, 10);
+      const now = new Date();
+      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      if (iso > today) {
+        W(seen.get('date') || 2, `date: ${iso} 是未来的日期（今天 ${today}）——站点不做定时发布，多半是笔误`);
+      }
     }
   }
   if (meta.date === undefined) W(2, '没写 date：列表排序与日期显示会空着，建议补上');
+
+  // ① 手写 minutes 与正文篇幅明显不符：口径与构建同源（lib/content.js：
+  // meta.minutes ? Number(...) : readMinutes(body)，400 字/分）。差距小是正常
+  // 口径差，差 2 分钟以上且比例 1.5 倍以上才提醒；草稿豁免——发布前还会重估
+  const m = Number(meta.minutes);
+  if (!meta.draft && meta.minutes !== undefined && meta.minutes !== ''
+      && typeof meta.minutes !== 'boolean' && !isNaN(m) && m > 0) {
+    const auto = readMinutes(body);
+    const lo = Math.min(m, auto);
+    const hi = Math.max(m, auto);
+    if (hi - lo >= 2 && hi / lo >= 1.5) {
+      W(seen.get('minutes') || 2, `minutes: 手写 ${m} 分钟，正文按字数约 ${auto} 分钟（400 字/分）——差得有点多，若是笔误删掉 minutes: 即用估算`);
+    }
+  }
 }
 
 /* 死链：渲染后的 href 里手写的站内绝对链接。草稿不算发布 */
@@ -341,6 +374,71 @@ function checkDeadLinks(html, slugs, seriesSlugs, item) {
       });
     }
   }
+}
+
+/* ---------- 标签近似拼写（站点级） ----------
+   归一（slugify）后比对全站标签。两条规则：
+     · 归一后相同、原文不同 → 标签页落点是 tag/<归一>.html，两个写法撞同一页会
+       互相覆盖（build 对合集 slug 冲突是硬报错，标签没有这层哨，这里是唯一一道）
+       ——每个写法各报一条，挂在它首次出现的篇上
+     · 归一后只差一个字符且都不短于 4 → 疑似拼写不一；一发即耗，一个标签最多
+       参与一次配对（不然一串近似的会两两刷屏），短于 4 的不比（中文双字词两两
+       相近太吵）。含草稿——笔误早发现早好
+   全站封顶 8 条；追加完对 warn 补排一次序（checkPost 里那次排在这之前） */
+function checkTagCloseness(report) {
+  const forms = new Map(); // 归一 → [{ tag, item, line }]，按首次出现先后
+  for (const item of report) {
+    for (const tag of item.tagList || []) {
+      const key = slugify(tag);
+      if (!key) continue;
+      const arr = forms.get(key) || [];
+      if (!arr.some((f) => f.tag === tag)) arr.push({ tag, item, line: item.tagLine });
+      forms.set(key, arr);
+    }
+  }
+  const notes = [];
+  const keys = [...forms.keys()];
+  for (const key of keys) {
+    const arr = forms.get(key);
+    if (arr.length < 2) continue;
+    const names = arr.map((f) => `「${f.tag}」`).join('与');
+    for (const f of arr) {
+      notes.push({
+        item: f.item,
+        line: f.line,
+        text: `标签${names}的标签页落点相同（都是 tag/${key}.html）——两页会互相覆盖，多半是同一个标签的两种写法，统一成一种即可`,
+      });
+    }
+  }
+  const used = new Set();
+  for (let i = 0; i < keys.length; i++) {
+    for (let j = i + 1; j < keys.length; j++) {
+      const a = keys[i];
+      const b = keys[j];
+      if (used.has(a) || used.has(b)) continue;
+      if (Math.min(a.length, b.length) < 4 || Math.abs(a.length - b.length) > 1) continue;
+      if (dist(a, b) !== 1) continue;
+      used.add(a);
+      used.add(b);
+      const fa = forms.get(a)[0];
+      const fb = forms.get(b)[0];
+      notes.push({
+        item: fa.item,
+        line: fa.line,
+        text: `标签「${fa.tag}」与「${fb.tag}」只差一个字符——疑似拼写不一（本意就是两个标签可忽略）`,
+      });
+    }
+  }
+  const CAP = 8;
+  const shown = notes.slice(0, CAP);
+  for (const n of shown) n.item.warns.push({ line: n.line, text: n.text });
+  if (notes.length > CAP) {
+    shown[shown.length - 1].item.warns.push({
+      line: 0,
+      text: `还有 ${notes.length - CAP} 处标签近似提醒（这一档只列前 ${CAP} 处）`,
+    });
+  }
+  for (const item of report) item.warns.sort((a, b) => a.line - b.line);
 }
 
 /* ---------- main ---------- */
@@ -390,6 +488,9 @@ function main() {
     checkPost(base, rel, slugs, series, item);
     report.push(item);
   }
+
+  // 站点级：标签近似拼写（跨篇比对，逐文件一档做不了这种现象）
+  checkTagCloseness(report);
 
   // 站点页面也扫一遍组件语法与死链（about / 404 是手写的正文）
   const pagesReport = [];

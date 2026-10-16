@@ -197,6 +197,88 @@
   word-break: break-all;
 }
 
+/* ---------- 脚注悬停预览（.is-fn 变体，preview.js） ---------- */
+/* 悬停正文里的脚注引用，卡片里给出这条定义。卡片挂在 body 上、不在
+   .article / .article .content 的样式域里，行内语法照不到——按正文的样
+   补最小兜底（卡片不可点，只求「认得出来是哪些元素」） */
+
+.link-preview.is-fn { width: 360px; }
+.link-preview .lp-fn {
+  font-size: .82rem;
+  line-height: 1.85;
+  color: var(--ink-2);
+  max-height: min(46vh, 340px);
+  overflow: hidden;
+}
+/* 截断处渐隐：底缘提示「下面还有」。只挂在真的溢出时（preview.js 渲染后
+   实测补 .is-clipped）——常开的话，装得下的短定义末行也会被渐隐吃掉 */
+.link-preview .lp-fn.is-clipped {
+  -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 2.4em), transparent);
+  mask-image: linear-gradient(180deg, #000 calc(100% - 2.4em), transparent);
+}
+.link-preview .lp-fn p { margin: 0; } /* 定义限一段话，不留段落大空隙 */
+.link-preview .lp-fn a {
+  color: var(--accent);
+  text-decoration: none;
+  border-bottom: 1px solid var(--line-strong);
+}
+.link-preview .lp-fn code {
+  font-family: var(--mono);
+  font-size: .84em;
+  background: rgba(232, 226, 214, .07);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: .14em .45em;
+  color: var(--accent-br);
+}
+.link-preview .lp-fn kbd {
+  font-family: var(--mono);
+  font-size: .8em;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  padding: .08em .42em .14em;
+  white-space: nowrap;
+}
+.link-preview .lp-fn mark {
+  background: rgba(185, 163, 124, .18);
+  color: inherit;
+  padding: .05em .15em;
+  border-radius: 4px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+.link-preview .lp-fn u {
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: .18em;
+}
+.link-preview .lp-fn img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: .7em 0;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+}
+.link-preview .lp-fn .fn-ref {
+  font-size: .56rem;
+  line-height: 0;
+  vertical-align: super;
+  margin-left: .1em;
+}
+.link-preview .lp-fn .fn-ref a {
+  font-family: var(--mono);
+  color: var(--accent-dim);
+  border-bottom: none;
+}
+/* 遮罩的模糊挂在 .article .content 域；卡片在域外，不补这条，脚注里的
+   ||剧透|| 会全显形——卡片不可点，遮着不揭，宁可模糊 */
+.link-preview .lp-fn .spoiler { filter: blur(.35em); }
+
 /* ---------- 评分卡：刻度逐格点亮 ---------- */
 
 /* 卡片自己借 [data-reveal] 的渐显进来，格子比它再晚一拍，从左往右一颗一颗亮。

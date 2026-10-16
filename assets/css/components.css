@@ -615,6 +615,20 @@ a.wall-name:hover { color: var(--accent-br); }
   margin-bottom: 1.6rem;
   color: var(--accent-dim);
 }
+/* 草稿横幅（只在本地预览构建出现，见 lib/views.js 的 isDraft）：kicker 与标题之间
+   一枚金线细胶囊，一眼看住「这不是正式页面」 */
+.draft-note {
+  display: inline-block;
+  margin: 0 0 2rem;
+  padding: .4rem 1.2rem;
+  border: 1px solid rgba(185, 163, 124, .45);
+  border-radius: 999px;
+  background: var(--accent-soft);
+  font-family: var(--mono);
+  font-size: .62rem;
+  letter-spacing: .22em;
+  color: var(--accent);
+}
 .article h1 {
   margin: 0;
   font-size: clamp(1.9rem, 4.8vw, 2.75rem);

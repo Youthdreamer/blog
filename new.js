@@ -19,7 +19,7 @@ const { PATHS, ROOT, SITE } = require('./lib/config');
 const { slugify } = require('./lib/utils');
 const { parseFrontmatter } = require('./lib/markdown');
 // 归属规则与构建共用一套（文件夹即合集）：向导不自己再抄一份判断
-const { listPostFiles, seriesOfPath, isPrivateDir } = require('./lib/content');
+const { listPostFiles, seriesOfPath, isPrivateDir, loadSeriesMeta } = require('./lib/content');
 
 const PORT = Number(process.env.PORT) || 8000;
 const BASE = `http://127.0.0.1:${PORT}`;
@@ -306,13 +306,27 @@ async function askField(key) {
   }
   if (key === 'series') {
     dim('  · 合集：同一部教程系列填同一个名字，合集页会按顺序把它们串成一条线');
-    const dirs = listFolders().filter((d) => !isPrivateDir(d));
-    if (dirs.length) {
-      dim(`  · content/posts 下已在的合集文件夹：${dirs.join('  ')}（填同名就写进文件夹）`);
+    const menu = seriesMenu();
+    if (menu.length) {
+      dim('  · 输编号选已有，或直接输名字（新合集）：');
+      menu.forEach((m, i) => {
+        dim(`    ${i + 1}) ${m.name} · ${m.mdOnly ? 'series.md' : `${m.count} 篇`}`);
+      });
+      dim('    0) 新合集（再输一次名字） · 回车跳过');
     }
     while (true) {
-      state.series = await ask(`${num}合集（可空）`);
-      if (!state.series) return;
+      let v = await ask(`${num}合集（可空）`);
+      if (!v) return;
+      if (menu.length && v === '0') {
+        v = await ask(`${num}新合集名（可空）`);
+        if (!v) return;
+      } else if (/^\d+$/.test(v) && Number(v) >= 1 && Number(v) <= menu.length) {
+        const picked = menu[Number(v) - 1];
+        say(`  ${C.gold}→${C.reset} ${picked.name}`); // 回显选中的是谁（确认页还会再列）
+        v = picked.name;
+      }
+      // 其余（含没命中的数字——纯数字的合集名让路给编号，见 seriesMenu）按手输走
+      state.series = v;
       // 私用文件夹里的文章构建时不收，别把稿子写进黑洞
       const priv = listFolders().find((d) => d.trim() === state.series && isPrivateDir(d));
       if (priv) {
@@ -324,6 +338,8 @@ async function askField(key) {
         say(
           `  ${C.gold}→${C.reset} 写进 content/posts/${folder}/ ${C.dim}（文件夹即合集，frontmatter 不再写 series）${C.reset}`,
         );
+      } else {
+        dim('  · 没有同名文件夹：series: 会写进 frontmatter');
       }
       return;
     }
@@ -412,6 +428,42 @@ function listFolders() {
     .map((e) => e.name);
 }
 
+/* 合集的现有名单（第 06 问的编号菜单）。三个来源，都按构建同款归属规则收：
+   · 文件夹（空文件夹也算——名字能与文件夹对上，文章就直接写进去）
+   · 根下文章 frontmatter 在用的 series（文件夹里的文件归属文件夹，不看 frontmatter）
+   · series.md 里露过面的名字（独有者标 mdOnly：写过去只会落 frontmatter）
+   篇数照数（草稿也算）。排序同合集页：篇数降序、名字升序——mdOnly 的篇数为
+   0，自然排在最后。纯数字的「合集名」在这里让路给编号（现实中不存在，不伺候） */
+function seriesMenu() {
+  const counts = new Map();
+  for (const rel of listPostFiles()) {
+    const at = seriesOfPath(rel);
+    if (!at || at.error) continue;
+    let name = at.series; // 文件夹优先（同 pickSeries）
+    if (!name) {
+      try {
+        const { meta } = parseFrontmatter(fs.readFileSync(path.join(PATHS.posts, rel), 'utf8'));
+        name = typeof meta.series === 'string' ? meta.series.trim() : '';
+      } catch (e) { name = ''; }
+    }
+    if (name) counts.set(name, (counts.get(name) || 0) + 1);
+  }
+  const names = new Map();
+  for (const [n, c] of counts) names.set(n, c);
+  for (const d of listFolders()) {
+    const t = d.trim();
+    if (t && !isPrivateDir(d) && !names.has(t)) names.set(t, 0);
+  }
+  const mdOnly = new Set();
+  const { descs, pins } = loadSeriesMeta();
+  for (const n of [...Object.keys(descs), ...pins]) {
+    if (!names.has(n)) { names.set(n, 0); mdOnly.add(n); }
+  }
+  return [...names.entries()]
+    .map(([name, count]) => ({ name, count, mdOnly: mdOnly.has(name) }))
+    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+}
+
 /* 合集名 → 该写进哪个文件夹（没有就空串）。与构建同一套归一：trim 后精确匹配 */
 function findSeriesFolder(name) {
   if (!name) return '';
@@ -461,7 +513,7 @@ function printFields() {
   say('    series_order  第几篇（正整数），缺省按发布日期升序排');
   say('    summary  一句话摘要，显示在文章列表里');
   say('    minutes  手动阅读时长（正整数），缺省自动按字数估算');
-  say('    draft    true=草稿不发布');
+  say('    draft    true=草稿不发布（本地 dev 预览下仍出单页）');
   say('    pin      true=置顶到列表最前');
   say('    toc      false=隐藏本文目录');
   say('    score_badge  false=列表卡片上不显示评分徽标（正文里的评分卡照常显示）');
@@ -595,9 +647,10 @@ async function main() {
     say(`  → 开发服务器已就绪${pid ? `（PID ${pid}）` : ''}：${BASE} · 停止：Ctrl+C 或 pnpm run stop`);
   }
 
-  /* 等待重建（250ms 防抖 + 构建），再打开页面 */
+  /* 等待重建（250ms 防抖 + 构建），再打开页面。
+     草稿不必再退回首页：dev 构建连草稿一起出单页（带草稿横幅），URL 与正式文章同构 */
   await sleep(1800);
-  const url = state.draft ? `${BASE}/` : `${BASE}/post/${state.slug}.html`;
+  const url = `${BASE}/post/${state.slug}.html`;
   gold(`  → ${url}`);
   say('');
   openBrowser(url);
